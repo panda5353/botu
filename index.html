@@ -57,6 +57,24 @@
   button:hover { opacity: 0.9; transform: translateY(-1px); }
   button:disabled { opacity: 0.5; cursor: not-allowed; }
   
+  .mode-divider {
+    text-align: center;
+    margin: 15px 0;
+    position: relative;
+    color: #888;
+    font-size: 0.85rem;
+  }
+  .mode-divider::before, .mode-divider::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    width: 40%;
+    height: 1px;
+    background: #444;
+  }
+  .mode-divider::before { left: 0; }
+  .mode-divider::after { right: 0; }
+
   /* Game Board */
   .game-status {
     background: #181824;
@@ -126,7 +144,6 @@
   .card-icon { font-size: 1.8rem; margin-bottom: 4px; }
   .card-name { font-size: 0.75rem; }
 
-  /* Modal / Overlay Action */
   .pending-card-box {
     background: #252535;
     padding: 15px;
@@ -140,7 +157,7 @@
   .btn-success { background: var(--success); color: #1e1e2e; }
 
   .log-box {
-    height: 100px;
+    height: 120px;
     overflow-y: auto;
     background: #12121c;
     border-radius: 6px;
@@ -156,22 +173,33 @@
 </head>
 <body>
 
-<h1>🪲 ごきぶりポーカー Online</h1>
+<h1>🪳 ごきぶりポーカー Online</h1>
 
-<!-- ログイン・ルーム参加画面 -->
+<!-- ログイン・ルーム作成／参加画面 -->
 <div id="setup-screen" class="screen active">
   <div class="card-panel">
-    <h2>ルーム設定</h2>
+    <h2>プロフィール＆ルーム選択</h2>
     <div class="input-group">
       <label>プレイヤー名</label>
       <input type="text" id="player-name-input" placeholder="名前を入力" maxlength="8">
     </div>
-    <div class="input-group">
-      <label>3桁の部屋番号 (例: 123)</label>
-      <input type="number" id="room-id-input" placeholder="100-999" min="100" max="999">
-    </div>
-    <div class="btn-group">
-      <button id="join-btn">部屋に入る / 作成する</button>
+
+    <div style="margin-top: 20px;">
+      <!-- 部屋作成セクション -->
+      <button id="create-room-btn" style="width: 100%; background: var(--accent-color); color: #1e1e2e; margin-bottom: 10px;">
+        新しい部屋を作成する (3桁番号を自動割り当て)
+      </button>
+
+      <div class="mode-divider">または</div>
+
+      <!-- 部屋参加セクション -->
+      <div class="input-group" style="margin-top: 10px;">
+        <label>3桁の部屋番号で参加</label>
+        <div style="display: flex; gap: 8px;">
+          <input type="number" id="room-id-input" placeholder="100-999" min="100" max="999" style="flex: 1;">
+          <button id="join-room-btn" style="flex: 1;">部屋に参加する</button>
+        </div>
+      </div>
     </div>
   </div>
 </div>
@@ -179,14 +207,14 @@
 <!-- ゲーム画面 -->
 <div id="game-screen" class="screen">
   <div class="game-status">
-    <div><strong>部屋番号:</strong> <span id="display-room-id"></span> | <strong>自分の名前:</strong> <span id="display-my-name"></span></div>
+    <div><strong>部屋番号:</strong> <span id="display-room-id" style="color:var(--accent-color); font-weight:bold;"></span> | <strong>自分の名前:</strong> <span id="display-my-name"></span></div>
     <div id="status-message" style="margin-top: 5px; color: var(--accent-color); font-weight: bold;">他のプレイヤーの参加を待っています...</div>
   </div>
 
   <!-- プレイヤー一覧と場のカード -->
   <div id="players-container" class="players-grid"></div>
 
-  <!-- アクションエリア（手番時・受け取り時に表示） -->
+  <!-- アクションエリア -->
   <div class="action-area">
     <h3>アクション</h3>
 
@@ -236,9 +264,9 @@
 </div>
 
 <script>
-// 嫌われ者8種定義
+// 嫌われ者8種定義（全種異なる絵文字）
 const SPECIES = [
-  { id: 'cockroach', name: 'ゴキブリ', icon: '🪲' },
+  { id: 'cockroach', name: 'ゴキブリ', icon: '🪳' },
   { id: 'spider',    name: 'クモ',     icon: '🕷️' },
   { id: 'stinkbug',  name: 'カメムシ', icon: '🪲' },
   { id: 'rat',       name: 'ネズミ',   icon: '🐀' },
@@ -248,8 +276,6 @@ const SPECIES = [
   { id: 'frog',       name: 'カエル',   icon: '🐸' }
 ];
 
-// 簡易ローカルストレージベースの擬似ネットワーク同期（GitHub Pagesなどの静的ホスティングで同一PC/ブラウザ間検証用）
-// ※実際に遠隔地の友達と通信する場合はBroadcastChannel/Firebase等を使用します。
 class GameStateStore {
   constructor(roomId) {
     this.key = `gokiburi_room_${roomId}`;
@@ -270,21 +296,42 @@ let myName = '';
 let store = null;
 let selectedHandIndex = null;
 
-// 要素の取得
 const setupScreen = document.getElementById('setup-screen');
 const gameScreen = document.getElementById('game-screen');
 const playerNameInput = document.getElementById('player-name-input');
 const roomIdInput = document.getElementById('room-id-input');
-const joinBtn = document.getElementById('join-btn');
+const createRoomBtn = document.getElementById('create-room-btn');
+const joinRoomBtn = document.getElementById('join-room-btn');
 
-joinBtn.addEventListener('click', () => {
-  myName = playerNameInput.value.trim();
+// 部屋作成処理
+createRoomBtn.addEventListener('click', () => {
+  if (!validateName()) return;
+  // ランダムな3桁の部屋番号 (100〜999) 生成
+  const randomRoomId = Math.floor(100 + Math.random() * 900);
+  enterRoom(randomRoomId, true);
+});
+
+// 部屋参加処理
+joinRoomBtn.addEventListener('click', () => {
+  if (!validateName()) return;
   const roomVal = parseInt(roomIdInput.value);
+  if (isNaN(roomVal) || roomVal < 100 || roomVal > 999) {
+    return alert('参加する3桁の部屋番号(100-999)を入力してください');
+  }
+  enterRoom(roomVal, false);
+});
 
-  if (!myName) return alert('名前を入力してください');
-  if (isNaN(roomVal) || roomVal < 100 || roomVal > 999) return alert('3桁の部屋番号(100-999)を入力してください');
+function validateName() {
+  myName = playerNameInput.value.trim();
+  if (!myName) {
+    alert('プレイヤー名を入力してください');
+    return false;
+  }
+  return true;
+}
 
-  roomId = roomVal;
+function enterRoom(targetRoomId, isCreate) {
+  roomId = targetRoomId;
   myPlayerId = 'p_' + Math.random().toString(36).substr(2, 9);
   store = new GameStateStore(roomId);
 
@@ -294,20 +341,26 @@ joinBtn.addEventListener('click', () => {
   document.getElementById('display-room-id').innerText = roomId;
   document.getElementById('display-my-name').innerText = myName;
 
-  initOrJoinRoom();
-});
+  initOrJoinRoom(isCreate);
+}
 
-function initOrJoinRoom() {
+function initOrJoinRoom(isCreate) {
   let state = store.get();
+
   if (!state) {
+    if (!isCreate) {
+      alert('指定された部屋が存在しません。正しい部屋番号を入力するか、新規作成してください。');
+      location.reload();
+      return;
+    }
     // 新規部屋作成
     state = {
-      status: 'waiting', // waiting, playing, ended
+      status: 'waiting',
       players: [],
       deck: [],
       activePlayerId: null,
-      pendingCard: null, // { senderId, targetId, card, declaration, history: [] }
-      logs: ['部屋を作成しました。3桁の部屋番号を友達に共有してください。']
+      pendingCard: null,
+      logs: [`部屋 [${roomId}] を作成しました。友達に部屋番号を教えてください。`]
     };
   }
 
@@ -319,48 +372,45 @@ function initOrJoinRoom() {
       hand: [],
       field: SPECIES.reduce((acc, s) => ({ ...acc, [s.id]: 0 }), {})
     });
-    state.logs.unshift(`${myName} が参加しました。`);
+    state.logs.unshift(`${myName} が部屋に参加しました。`);
   }
 
-  // プレイヤーが複数集まったら自動開始 (デモ用に2人以上で開始可能ボタン設置)
   store.set(state);
   render();
 
-  // 状態監視
   window.addEventListener('storage', () => render());
-  setInterval(() => render(), 1000); // ポーリング補填
+  setInterval(() => render(), 1000);
 }
 
 function startGame() {
   let state = store.get();
-  if (state.players.length < 2) return alert('最低2名必要です');
+  if (state.players.length < 2) return alert('ゲーム開始には最低2名のプレイヤーが必要です');
 
-  // 1. 山札生成 (8種 x 8枚 = 64枚)
+  // 山札作成 (8種 x 8枚 = 64枚)
   let deck = [];
   SPECIES.forEach(s => {
     for (let i = 0; i < 8; i++) deck.push(s.id);
   });
-  // シャッフル
   deck.sort(() => Math.random() - 0.5);
 
-  // 2人プレイの場合の特殊ルール (10枚ランダム除外)
+  // 2人プレイ特殊ルール (10枚ランダム除外)
   if (state.players.length === 2) {
     deck = deck.slice(10);
   }
 
-  // 2. カード配分
+  // 手札配布
   let pIdx = 0;
   while (deck.length > 0) {
     state.players[pIdx].hand.push(deck.pop());
     pIdx = (pIdx + 1) % state.players.length;
   }
 
-  // 3. ランダムなスタートプレイヤー決定
+  // スタートプレイヤーをランダム決定
   const randomStartIndex = Math.floor(Math.random() * state.players.length);
   state.activePlayerId = state.players[randomStartIndex].id;
 
   state.status = 'playing';
-  state.logs.unshift(`ゲーム開始！最初の出し手は ${state.players[randomStartIndex].name} です。`);
+  state.logs.unshift(`ゲーム開始！最初の出し手は 【${state.players[randomStartIndex].name}】 です。`);
   
   store.set(state);
   render();
@@ -373,10 +423,9 @@ function render() {
   const statusMsg = document.getElementById('status-message');
   const playersContainer = document.getElementById('players-container');
 
-  // スタートボタン表示制御
   if (state.status === 'waiting') {
     statusMsg.innerHTML = `参加待ち (${state.players.length}名) ` + 
-      (state.players[0].id === myPlayerId ? `<button onclick="startGame()">ゲーム開始</button>` : '');
+      (state.players[0].id === myPlayerId ? `<button onclick="startGame()">ゲームを開始する</button>` : '');
   } else if (state.status === 'playing') {
     const activeP = state.players.find(p => p.id === state.activePlayerId);
     statusMsg.innerText = `現在の出し手: ${activeP ? activeP.name : ''}`;
@@ -384,7 +433,7 @@ function render() {
     statusMsg.innerText = `ゲーム終了！ 敗者: ${state.loserName}`;
   }
 
-  // プレイヤー一覧
+  // プレイヤー一覧＆場札の表示
   playersContainer.innerHTML = '';
   state.players.forEach(p => {
     const pCard = document.createElement('div');
@@ -407,11 +456,11 @@ function render() {
     playersContainer.appendChild(pCard);
   });
 
-  // ログ更新
+  // ログ表示
   const logBox = document.getElementById('log-box');
   logBox.innerHTML = state.logs.map(l => `<div class="log-entry">${l}</div>`).join('');
 
-  // アクションフェーズ分岐
+  // フェーズごとの表示切り替え
   const phaseSend = document.getElementById('phase-send');
   const phaseRespond = document.getElementById('phase-respond');
   const phaseWait = document.getElementById('phase-wait');
@@ -422,7 +471,6 @@ function render() {
 
   if (state.status === 'playing') {
     if (state.pendingCard) {
-      // カードが提示されている最中
       if (state.pendingCard.targetId === myPlayerId) {
         phaseRespond.style.display = 'block';
         setupRespondPhase(state);
@@ -430,7 +478,6 @@ function render() {
         phaseWait.style.display = 'block';
       }
     } else if (state.activePlayerId === myPlayerId) {
-      // 自分の手番でカードを出す
       phaseSend.style.display = 'block';
       setupSendPhase(state);
     } else {
@@ -439,7 +486,6 @@ function render() {
   }
 }
 
-// カード提出のセットアップ
 function setupSendPhase(state) {
   const me = state.players.find(p => p.id === myPlayerId);
   const handDiv = document.getElementById('my-hand');
@@ -458,14 +504,12 @@ function setupSendPhase(state) {
     handDiv.appendChild(cBtn);
   });
 
-  // 相手セレクト
   const targetSelect = document.getElementById('target-player-select');
   targetSelect.innerHTML = '<option value="">渡す相手を選択</option>';
   state.players.filter(p => p.id !== myPlayerId).forEach(p => {
     targetSelect.innerHTML += `<option value="${p.id}">${p.name}</option>`;
   });
 
-  // 宣言セレクト
   const declareSelect = document.getElementById('declare-type-select');
   declareSelect.innerHTML = '<option value="">宣言する種類を選択</option>';
   SPECIES.forEach(s => {
@@ -504,7 +548,6 @@ function checkSendValid() {
   document.getElementById('send-card-btn').disabled = !(selectedHandIndex !== null && targetId && declareId);
 }
 
-// 受け取り・判定のセットアップ
 function setupRespondPhase(state) {
   const pc = state.pendingCard;
   const sender = state.players.find(p => p.id === pc.senderId);
@@ -515,23 +558,19 @@ function setupRespondPhase(state) {
   document.getElementById('declared-species-text').innerText = `${decSp.icon} ${decSp.name}`;
   document.getElementById('pass-controls').style.display = 'none';
 
-  // 当て判定
   document.getElementById('guess-true-btn').onclick = () => resolveGuess(true);
   document.getElementById('guess-false-btn').onclick = () => resolveGuess(false);
 
-  // パス用確認
   document.getElementById('peek-btn').onclick = () => {
     document.getElementById('actual-card-text').innerText = `${actualSp.icon} ${actualSp.name}`;
     document.getElementById('pass-controls').style.display = 'block';
 
-    // パス対象セレクト（過去にこのターンでカードが渡った人を除く）
     const passSelect = document.getElementById('pass-target-select');
     passSelect.innerHTML = '<option value="">パスする相手</option>';
     state.players.filter(p => !pc.history.includes(p.id)).forEach(p => {
       passSelect.innerHTML += `<option value="${p.id}">${p.name}</option>`;
     });
 
-    // 最後の1人ならパス不可にする
     if (passSelect.children.length <= 1) {
       passSelect.innerHTML = '<option value="">(全員パス済みのためパス不可)</option>';
       document.getElementById('pass-card-btn').disabled = true;
@@ -585,7 +624,7 @@ function resolveGuess(guessedTrue) {
     `カードは ${loser.name} の場に置かれました。`
   );
 
-  state.activePlayerId = loser.id; // カードを引き取った人が次の出し手
+  state.activePlayerId = loser.id;
   state.pendingCard = null;
 
   checkGameOver(state, loser);
@@ -593,23 +632,22 @@ function resolveGuess(guessedTrue) {
   render();
 }
 
-// 勝敗判定
 function checkGameOver(state, lastLoser) {
   const isTwoPlayer = state.players.length === 2;
   const winLimit = isTwoPlayer ? 5 : 4;
 
   let isGameOver = false;
 
-  // 1. 同種カードが規定枚数揃ったか
+  // 1. 同種枚数チェック
   Object.values(lastLoser.field).forEach(count => {
     if (count >= winLimit) isGameOver = true;
   });
 
-  // 2. 8種類すべて揃ったか
+  // 2. 全8種コンプリートチェック
   const speciesTypesCount = Object.values(lastLoser.field).filter(c => c > 0).length;
   if (speciesTypesCount === 8) isGameOver = true;
 
-  // 3. 次の手番の人の手札が0枚か
+  // 3. 手札切れチェック
   const nextPlayer = state.players.find(p => p.id === state.activePlayerId);
   if (nextPlayer.hand.length === 0) {
     isGameOver = true;
