@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ごきぶりポーカー Online v1.4</title>
+  <title>ごきぶりポーカー Online v1.5</title>
   <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
   <style>
     :root {
@@ -45,6 +45,20 @@
     }
 
     .logo { font-size: 1.2rem; font-weight: bold; display: flex; align-items: center; gap: 8px; }
+    .header-btns { display: flex; gap: 8px; align-items: center; }
+    .bgm-btn {
+      background: #27ae60;
+      color: white;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-weight: bold;
+      cursor: pointer;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+      transition: all 0.2s;
+      font-size: 0.85rem;
+    }
+    .bgm-btn.off { background: #7f8c8d; }
     .rule-btn {
       background: var(--warning);
       color: white;
@@ -177,12 +191,13 @@
       margin-top: 4px;
     }
 
+    /* 相手プレイヤー枠：はみ出しを解消し、中に綺麗に収まるサイズに最適化 */
     .player-frame {
       background: linear-gradient(135deg, #795548, #4e342e);
       border: 3px solid #d7ccc8;
       border-radius: 12px;
       padding: 6px;
-      width: 105px;
+      width: 132px; /* リストが収まるよう幅を少し拡張 */
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -221,47 +236,48 @@
       margin-bottom: 4px;
     }
     .avatar-icon-box {
-      width: 45px;
-      height: 45px;
+      width: 40px;
+      height: 40px;
       border-radius: 8px;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 1.6rem;
+      font-size: 1.4rem;
       border: 2px solid rgba(255,255,255,0.4);
       position: relative;
+      margin-bottom: 4px;
     }
 
     .hand-fan-badge {
       position: absolute;
-      bottom: -8px;
+      bottom: -6px;
       background: #1976d2;
       color: white;
-      font-size: 0.65rem;
+      font-size: 0.6rem;
       font-weight: bold;
-      padding: 2px 6px;
+      padding: 1px 5px;
       border-radius: 10px;
       border: 1px solid white;
       box-shadow: 0 2px 4px rgba(0,0,0,0.3);
     }
 
+    /* アイコン下部の場札リスト（はみ出し解消・2列4行のグリッドで完璧に枠内に収納） */
     .mini-field-list {
       display: grid;
-      grid-template-columns: repeat(4, 1fr);
+      grid-template-columns: repeat(2, 1fr);
       gap: 2px;
       width: 100%;
-      margin-top: 6px;
       background: rgba(0,0,0,0.4);
       padding: 3px;
       border-radius: 4px;
     }
     .mini-field-item {
-      font-size: 0.65rem;
+      font-size: 0.6rem;
       display: flex;
       align-items: center;
       justify-content: space-between;
       background: rgba(255,255,255,0.15);
-      padding: 1px 2px;
+      padding: 1px 3px;
       border-radius: 2px;
     }
 
@@ -442,8 +458,11 @@
 <body>
 
   <header>
-    <div class="logo">🪳 ごきぶりポーカー Online <span style="font-size: 0.8rem; color: #ffd700; background: rgba(0,0,0,0.4); padding: 2px 6px; border-radius: 4px;">v1.4</span></div>
-    <button class="rule-btn" onclick="toggleModal(true)">📖 ルール確認</button>
+    <div class="logo">🪳 ごきぶりポーカー Online <span style="font-size: 0.8rem; color: #ffd700; background: rgba(0,0,0,0.4); padding: 2px 6px; border-radius: 4px;">v1.5</span></div>
+    <div class="header-btns">
+      <button class="bgm-btn off" id="bgmToggleBtn" onclick="toggleBGM()">🎵 BGM: OFF</button>
+      <button class="rule-btn" onclick="toggleModal(true)">📖 ルール確認</button>
+    </div>
   </header>
 
   <div class="popup-overlay">
@@ -455,7 +474,7 @@
 
   <div class="modal-overlay" id="ruleModal">
     <div class="modal">
-      <h2>ごきぶりポーカー ルール v1.4</h2>
+      <h2>ごきぶりポーカー ルール v1.5</h2>
       <h3>基本概要</h3>
       <p>嫌われ者カードを押し付け合い、敗者1人を決めるブラフゲームです。</p>
       
@@ -496,7 +515,7 @@
           <label>プレイヤー名</label>
           <input type="text" id="hostNameInput" placeholder="名前を入力" maxlength="10">
         </div>
-        <button class="btn btn-primary" onclick="createRoom()">3桁の部屋を作成</button>
+        <button class="btn btn-primary" onclick="playSound('click'); createRoom();">3桁の部屋を作成</button>
       </div>
 
       <div class="card-panel">
@@ -509,7 +528,7 @@
           <label>部屋番号（3桁数字）</label>
           <input type="text" id="roomNumInput" placeholder="例: 123" maxlength="3">
         </div>
-        <button class="btn btn-success" onclick="joinRoom()">部屋に参加</button>
+        <button class="btn btn-success" onclick="playSound('click'); joinRoom();">部屋に参加</button>
       </div>
     </div>
 
@@ -520,7 +539,7 @@
       </div>
       <h2>参加プレイヤー一覧</h2>
       <ul class="player-list" id="waitingPlayerList"></ul>
-      <button id="startGameBtn" class="btn btn-primary hidden" onclick="requestStartGame()">ゲームを開始する</button>
+      <button id="startGameBtn" class="btn btn-primary hidden" onclick="playSound('click'); requestStartGame();">ゲームを開始する</button>
       <p id="waitingNotice" style="text-align: center; color: #666; font-size: 0.9rem;" class="hidden">ホストがゲームを開始するのを待っています...</p>
     </div>
 
@@ -557,6 +576,130 @@
   </main>
 
   <script>
+    // --- 音声合成エンジン (Web Audio API による効果音 & BGM) ---
+    let audioCtx = null;
+    let bgmInterval = null;
+    let isBgmPlaying = false;
+
+    function initAudio() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+    }
+
+    function playSound(type) {
+      try {
+        initAudio();
+        const now = audioCtx.currentTime;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+
+        if (type === 'click') {
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(600, now);
+          osc.frequency.exponentialRampToValueAtTime(300, now + 0.08);
+          gain.gain.setValueAtTime(0.15, now);
+          gain.gain.linearRampToValueAtTime(0.01, now + 0.08);
+          osc.start(now);
+          osc.stop(now + 0.08);
+        } else if (type === 'card') {
+          // カードを置く音（シャカッ）
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(250, now);
+          osc.frequency.exponentialRampToValueAtTime(100, now + 0.12);
+          gain.gain.setValueAtTime(0.2, now);
+          gain.gain.linearRampToValueAtTime(0.01, now + 0.12);
+          osc.start(now);
+          osc.stop(now + 0.12);
+        } else if (type === 'win') {
+          // 勝利のファンファーレ
+          const notes = [523.25, 659.25, 783.99, 1046.50];
+          notes.forEach((freq, i) => {
+            const o = audioCtx.createOscillator();
+            const g = audioCtx.createGain();
+            o.connect(g);
+            g.connect(audioCtx.destination);
+            o.type = 'sine';
+            o.frequency.setValueAtTime(freq, now + i * 0.12);
+            g.gain.setValueAtTime(0.2, now + i * 0.12);
+            g.gain.linearRampToValueAtTime(0.01, now + i * 0.12 + 0.25);
+            o.start(now + i * 0.12);
+            o.stop(now + i * 0.12 + 0.25);
+          });
+        } else if (type === 'lose') {
+          // 残念なときのサウンド
+          const notes = [300, 260, 220];
+          notes.forEach((freq, i) => {
+            const o = audioCtx.createOscillator();
+            const g = audioCtx.createGain();
+            o.connect(g);
+            g.connect(audioCtx.destination);
+            o.type = 'sawtooth';
+            o.frequency.setValueAtTime(freq, now + i * 0.18);
+            g.gain.setValueAtTime(0.15, now + i * 0.18);
+            g.gain.linearRampToValueAtTime(0.01, now + i * 0.18 + 0.3);
+            o.start(now + i * 0.18);
+            o.stop(now + i * 0.18 + 0.3);
+          });
+        }
+      } catch (e) {
+        console.log("Audio play error:", e);
+      }
+    }
+
+    // 軽快なBGM（ループ再生）
+    function toggleBGM() {
+      initAudio();
+      const btn = document.getElementById('bgmToggleBtn');
+      isBgmPlaying = !isBgmPlaying;
+
+      if (isBgmPlaying) {
+        btn.innerText = "🎵 BGM: ON";
+        btn.classList.remove('off');
+        startBGM();
+      } else {
+        btn.innerText = "🎵 BGM: OFF";
+        btn.classList.add('off');
+        stopBGM();
+      }
+    }
+
+    function startBGM() {
+      if (bgmInterval) clearInterval(bgmInterval);
+      const melody = [261.63, 329.63, 392.00, 523.25, 392.00, 329.63, 440.00, 349.23];
+      let step = 0;
+      bgmInterval = setInterval(() => {
+        if (!isBgmPlaying || !audioCtx) return;
+        try {
+          const now = audioCtx.currentTime;
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(melody[step % melody.length], now);
+          gain.gain.setValueAtTime(0.04, now);
+          gain.gain.linearRampToValueAtTime(0.001, now + 0.3);
+          osc.start(now);
+          osc.stop(now + 0.3);
+          step++;
+        } catch (e) {}
+      }, 350);
+    }
+
+    function stopBGM() {
+      if (bgmInterval) {
+        clearInterval(bgmInterval);
+        bgmInterval = null;
+      }
+    }
+
+    // --- ゲーム本体のロジック ---
     const CARD_TYPES = [
       { id: 'cockroach', name: 'ゴキブリ', icon: '🪳', class: 'card-cockroach', order: 1 },
       { id: 'spider',    name: 'クモ',     icon: '🕷️', class: 'card-spider',    order: 2 },
@@ -577,7 +720,7 @@
       { avatar: '🦁', bg: '#00bcd4', name: 'ライオン' }
     ];
 
-    const PEER_PREFIX = "goki-poker-room-3digit-v14-";
+    const PEER_PREFIX = "goki-poker-room-3digit-v15-";
 
     let peer = null;
     let connections = {};
@@ -604,6 +747,7 @@
     let lastHandledEventId = null;
 
     function toggleModal(show) {
+      playSound('click');
       document.getElementById('ruleModal').classList.toggle('active', show);
     }
 
@@ -753,7 +897,6 @@
       });
     }
 
-    // イベント通知ポップアップ（勝者には「勝利！」、敗者や見破られた側には「残念…！」をわかりやすく表示）
     function triggerEventPopups() {
       if (!gameState.lastEvent || gameState.lastEvent.eventId === lastHandledEventId) return;
       lastHandledEventId = gameState.lastEvent.eventId;
@@ -764,29 +907,35 @@
         const realCardInfo = CARD_TYPES.find(c => c.id === ev.realCardId);
 
         if (ev.guessCorrect) {
-          // 回答者(target)の見破り成功
           if (myId === ev.targetId) {
+            playSound('win');
             showPopup("✨ 見破り成功！", `正解！カード（${realCardInfo.name} ${realCardInfo.icon}）は ${ev.fromName} が引き取りました。`, 'win');
           } else if (myId === ev.fromId) {
+            playSound('lose');
             showPopup("💦 残念...！見破られました", `ブラフが見破られました。カード（${realCardInfo.name} ${realCardInfo.icon}）を自分の場に引き取ります...`, 'lose');
           } else {
+            playSound('click');
             showPopup("✨ 見破り成功！", `${ev.targetName} が ${ev.fromName} のカードを見破りました。`, 'win');
           }
         } else {
-          // 出し手(from)のブラフ成功（回答者は見破り失敗）
           if (myId === ev.fromId) {
+            playSound('win');
             showPopup("😈 ブラフ成功！", `相手を騙すことに成功！カード（${realCardInfo.name} ${realCardInfo.icon}）は ${ev.targetName} が引き取りました！`, 'bluff');
           } else if (myId === ev.targetId) {
+            playSound('lose');
             showPopup("💦 残念...！見破り失敗", `ハズレです... カード（${realCardInfo.name} ${realCardInfo.icon}）を自分の場に引き取ります...`, 'lose');
           } else {
+            playSound('click');
             showPopup("😈 ブラフ成功！", `${ev.fromName} が ${ev.targetName} を騙すことに成功しました！`, 'bluff');
           }
         }
       } else if (ev.type === 'GAME_OVER') {
         setTimeout(() => {
           if (myId === gameState.loserId) {
+            playSound('lose');
             showPopup("😭 残念...！あなたの敗北です", `敗北条件を満たしてしまいました... (${ev.reason})`, 'lose', 12000);
           } else {
+            playSound('win');
             showPopup("🎉 勝利！", `おめでとうございます！ ${ev.loserName} さんの敗北により、あなたの勝利です！`, 'win', 12000);
           }
         }, 1500);
@@ -794,6 +943,7 @@
     }
 
     function sendActionToHost(action) {
+      playSound('card');
       if (isHost) {
         handlePlayerAction(myId, action);
       } else {
@@ -1037,6 +1187,7 @@
         `;
 
         pCard.onclick = () => {
+          playSound('click');
           if (isMyTurn || isPassTarget) {
             targetPlayerIdForAction = p.id;
             renderGame();
@@ -1101,6 +1252,7 @@
           `;
 
           el.onclick = () => {
+            playSound('click');
             if (gameState.phase === 'IDLE' && gameState.turnPlayerId === myId) {
               if (selectedTypeId === typeInfo.id) {
                 selectedTypeId = null;
@@ -1166,6 +1318,7 @@
         sendBtn.style.width = 'auto';
         sendBtn.innerText = `${targetPlayerObj.name} さんへカードを渡す`;
         sendBtn.onclick = () => {
+          playSound('card');
           sendActionToHost({
             type: 'OFFER',
             cardUniqueId: selectedUniqueId,
