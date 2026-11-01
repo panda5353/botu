@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ごきぶりポーカー Online v1.2</title>
+  <title>ごきぶりポーカー Online v1.3</title>
   <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
   <style>
     :root {
@@ -301,7 +301,7 @@
     .game-card.selected {
       transform: translateY(-10px) !important;
       border-color: #ffd700 !important;
-      box-shadow: 0 0 12px #ffd700;
+      box-shadow: 0 0 14px #ffd700;
     }
     .game-card .card-top-icon { font-size: 0.75rem; align-self: flex-start; }
     .game-card .card-main-icon { font-size: 1.8rem; margin: 2px 0; }
@@ -313,16 +313,16 @@
       right: -6px;
       background: #e74c3c;
       color: white;
-      font-size: 0.65rem;
+      font-size: 0.7rem;
       font-weight: bold;
-      width: 18px;
-      height: 18px;
+      width: 22px;
+      height: 22px;
       border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
-      border: 1px solid white;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+      border: 2px solid white;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.4);
       z-index: 10;
     }
 
@@ -388,10 +388,11 @@
       padding-top: 4px;
     }
 
+    /* 重ねてすっきり見せる手札グループコンテナ */
     .hand-grid-container {
       display: flex;
       flex-wrap: wrap;
-      gap: 8px;
+      gap: 10px;
       justify-content: center;
       align-items: center;
       background: rgba(0, 0, 0, 0.4);
@@ -399,8 +400,6 @@
       border-radius: 10px;
       width: 100%;
       min-height: 110px;
-      max-height: 140px;
-      overflow-y: auto;
     }
 
     .my-field-box {
@@ -444,7 +443,7 @@
 <body>
 
   <header>
-    <div class="logo">🪳 ごきぶりポーカー Online <span style="font-size: 0.8rem; color: #ffd700; background: rgba(0,0,0,0.4); padding: 2px 6px; border-radius: 4px;">v1.2</span></div>
+    <div class="logo">🪳 ごきぶりポーカー Online <span style="font-size: 0.8rem; color: #ffd700; background: rgba(0,0,0,0.4); padding: 2px 6px; border-radius: 4px;">v1.3</span></div>
     <button class="rule-btn" onclick="toggleModal(true)">📖 ルール確認</button>
   </header>
 
@@ -457,7 +456,7 @@
 
   <div class="modal-overlay" id="ruleModal">
     <div class="modal">
-      <h2>ごきぶりポーカー ルール v1.2</h2>
+      <h2>ごきぶりポーカー ルール v1.3</h2>
       <h3>基本概要</h3>
       <p>嫌われ者カードを押し付け合い、敗者1人を決めるブラフゲームです。</p>
       
@@ -473,7 +472,7 @@
       </ul>
 
       <h3>手番でできること</h3>
-      <p>手札から1枚選び、相手の動物アイコンを直接タップし、種類を宣言します（嘘でもOK）。</p>
+      <p>手札の虫を1つ選んでタップし、相手の動物アイコンを直接タップして、種類を宣言します（嘘でもOK）。</p>
       <p>受け取った人の選択肢：</p>
       <ul>
         <li><b>見破る：</b>宣言が「本当」か「嘘」かを当てる。正解なら出し手、不正解なら自分が引き取る。</li>
@@ -544,6 +543,7 @@
       </div>
 
       <div class="my-hand-section">
+        <!-- 8種類ごとに1枚ずつ重ねて表示する手札エリア -->
         <div class="hand-grid-container" id="myHandCards"></div>
 
         <div class="my-field-box">
@@ -579,7 +579,7 @@
       { avatar: '🦁', bg: '#00bcd4', name: 'ライオン' }
     ];
 
-    const PEER_PREFIX = "goki-poker-room-3digit-v12-";
+    const PEER_PREFIX = "goki-poker-room-3digit-v13-";
 
     let peer = null;
     let connections = {};
@@ -601,6 +601,7 @@
     };
 
     let selectedUniqueId = null;
+    let selectedTypeId = null; // 選択されたカードの種類ID
     let targetPlayerIdForAction = null;
     let lastHandledEventId = null;
 
@@ -983,7 +984,7 @@
         statusEl.style.borderColor = "var(--accent)";
       } else if (gameState.phase === 'IDLE') {
         const isMyTurn = gameState.turnPlayerId === myId;
-        statusEl.innerText = isMyTurn ? "👉 あなたの手番です。手札と渡す相手アイコンをタップしてください。" : `⏳ ${getTurnPlayerName()} の手番です...`;
+        statusEl.innerText = isMyTurn ? "👉 あなたの手番です。出したい虫と相手アイコンをタップしてください。" : `⏳ ${getTurnPlayerName()} の手番です...`;
         statusEl.style.borderColor = isMyTurn ? "var(--success)" : "var(--primary)";
       } else if (gameState.phase === 'OFFERED') {
         const isTarget = gameState.activeCard.targetId === myId;
@@ -1056,7 +1057,7 @@
         centerClaim.innerText = '';
       }
 
-      renderMyHandGrid(me);
+      renderMyHandGrouped(me);
       renderActionPanel(me);
 
       const logEl = document.getElementById('logContainer');
@@ -1068,44 +1069,50 @@
       return p ? p.name : '';
     }
 
-    function renderMyHandGrid(me) {
+    // 8種類の虫ごとにグループ分けし、所持枚数（バッジ）付きで重ねて表示
+    function renderMyHandGrouped(me) {
       const handContainer = document.getElementById('myHandCards');
       handContainer.innerHTML = '';
 
-      const sortedHand = [...me.hand].sort((a, b) => {
-        const orderA = CARD_TYPES.find(c => c.id === a.id)?.order || 99;
-        const orderB = CARD_TYPES.find(c => c.id === b.id)?.order || 99;
-        return orderA - orderB;
-      });
-
-      if (sortedHand.length === 0) {
+      if (me.hand.length === 0) {
         handContainer.innerHTML = `<p style="color: #aaa; font-size: 0.85rem;">手札はありません</p>`;
         return;
       }
 
-      sortedHand.forEach((card) => {
-        const el = document.createElement('div');
-        const cardTypeInfo = CARD_TYPES.find(c => c.id === card.id) || { class: 'card-back-style', icon: '❓', name: '?' };
-        const isSelected = (selectedUniqueId === card.uniqueId);
+      // CARD_TYPESの順番に従って所持している種類だけをまとめる
+      CARD_TYPES.forEach((typeInfo) => {
+        const cardsOfType = me.hand.filter(c => c.id === typeInfo.id);
+        const count = cardsOfType.length;
 
-        const sameTypeCountInHand = me.hand.filter(c => c.id === card.id).length;
+        if (count > 0) {
+          // その虫の中から1枚代表IDを取得
+          const firstCard = cardsOfType[0];
+          const isSelected = (selectedTypeId === typeInfo.id);
 
-        el.className = `game-card ${cardTypeInfo.class} ${isSelected ? 'selected' : ''}`;
-        el.innerHTML = `
-          <div class="card-count-badge">${sameTypeCountInHand}</div>
-          <div class="card-top-icon">${cardTypeInfo.icon}</div>
-          <div class="card-main-icon">${cardTypeInfo.icon}</div>
-          <div class="card-title">${cardTypeInfo.name}</div>
-        `;
+          const el = document.createElement('div');
+          el.className = `game-card ${typeInfo.class} ${isSelected ? 'selected' : ''}`;
+          el.innerHTML = `
+            <div class="card-count-badge">${count}</div>
+            <div class="card-top-icon">${typeInfo.icon}</div>
+            <div class="card-main-icon">${typeInfo.icon}</div>
+            <div class="card-title">${typeInfo.name}</div>
+          `;
 
-        el.onclick = () => {
-          if (gameState.phase === 'IDLE' && gameState.turnPlayerId === myId) {
-            selectedUniqueId = (selectedUniqueId === card.uniqueId) ? null : card.uniqueId;
-            renderGame();
-          }
-        };
+          el.onclick = () => {
+            if (gameState.phase === 'IDLE' && gameState.turnPlayerId === myId) {
+              if (selectedTypeId === typeInfo.id) {
+                selectedTypeId = null;
+                selectedUniqueId = null;
+              } else {
+                selectedTypeId = typeInfo.id;
+                selectedUniqueId = firstCard.uniqueId;
+              }
+              renderGame();
+            }
+          };
 
-        handContainer.appendChild(el);
+          handContainer.appendChild(el);
+        }
       });
 
       const fieldContainer = document.getElementById('myFieldCards');
@@ -1137,7 +1144,7 @@
         title.innerHTML = `手札を選択し、相手アイコンをタップ (${targetNameTag(targetNameDisplay)})`;
 
         if (!selectedUniqueId) {
-          group.innerHTML = `<p style="color:#aaa; font-size:0.85rem;">👆 まず手札のカードをタップして選択してください。</p>`;
+          group.innerHTML = `<p style="color:#aaa; font-size:0.85rem;">👆 まず出したい虫のカードをタップして選択してください。</p>`;
           return;
         }
 
@@ -1164,6 +1171,7 @@
             claim: claimSelect.value
           });
           selectedUniqueId = null;
+          selectedTypeId = null;
           targetPlayerIdForAction = null;
         };
 
