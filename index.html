@@ -261,8 +261,11 @@
       transform: scale(1);
       opacity: 1;
     }
-    .popup-title { font-size: 1.8rem; font-weight: bold; margin-bottom: 8px; }
-    .popup-sub { font-size: 1.1rem; color: #ddd; }
+    .popup-banner.win { border-color: #2ecc71; background: rgba(20, 80, 40, 0.95); }
+    .popup-banner.lose { border-color: #e74c3c; background: rgba(100, 20, 20, 0.95); }
+    .popup-banner.bluff { border-color: #f39c12; background: rgba(90, 60, 10, 0.95); }
+    .popup-title { font-size: 2rem; font-weight: bold; margin-bottom: 8px; }
+    .popup-sub { font-size: 1.15rem; color: #eee; }
 
     /* 操作コントロールパネル */
     .control-panel {
@@ -442,7 +445,6 @@
   </main>
 
   <script>
-    // カード定義
     const CARD_TYPES = [
       { id: 'cockroach', name: 'ゴキブリ', icon: '🪳', class: 'card-cockroach', order: 1 },
       { id: 'spider',    name: 'クモ',     icon: '🕷️', class: 'card-spider',    order: 2 },
@@ -454,7 +456,7 @@
       { id: 'stinkbug',  name: 'カメムシ', icon: '🪲', class: 'card-stinkbug',  order: 8 }
     ];
 
-    const PEER_PREFIX = "goki-poker-room-3digit-v2-";
+    const PEER_PREFIX = "goki-poker-room-3digit-v3-";
 
     let peer = null;
     let connections = {};
@@ -470,20 +472,23 @@
       turnPlayerId: null,
       activeCard: null,
       phase: 'IDLE',
-      logs: []
+      logs: [],
+      lastEvent: null, // 演出イベント同期用
+      loserId: null
     };
 
     let selectedCardIndex = null;
+    let lastHandledEventId = null;
 
     function toggleModal(show) {
       document.getElementById('ruleModal').classList.toggle('active', show);
     }
 
-    function showPopup(title, sub, duration = 2500) {
+    function showPopup(title, sub, styleClass = '', duration = 3000) {
       const popup = document.getElementById('centerPopup');
+      popup.className = `popup-banner ${styleClass} show`;
       document.getElementById('popupTitle').innerText = title;
       document.getElementById('popupSub').innerText = sub;
-      popup.classList.add('show');
       setTimeout(() => {
         popup.classList.remove('show');
       }, duration);
@@ -603,6 +608,7 @@
       if (data.type === 'SYNC') {
         gameState = data.state;
         renderGame();
+        triggerEventPopups();
       } else if (data.type === 'ERROR') {
         alert(data.message);
       }
@@ -611,6 +617,8 @@
     function broadcastGameState() {
       if (!isHost) return;
       renderGame();
+      triggerEventPopups();
+
       Object.keys(connections).forEach(peerId => {
         const maskedState = JSON.parse(JSON.stringify(gameState));
         maskedState.players.forEach(p => {
@@ -620,6 +628,45 @@
         });
         connections[peerId].send({ type: 'SYNC', state: maskedState });
       });
+    }
+
+    function triggerEventPopups() {
+      if (!gameState.lastEvent || gameState.lastEvent.eventId === lastHandledEventId) return;
+      lastHandledEventId = gameState.lastEvent.eventId;
+
+      const ev = gameState.lastEvent;
+
+      if (ev.type === 'JUDGE_RESULT') {
+        const realCardInfo = CARD_TYPES.find(c => c.id === ev.realCardId);
+
+        if (ev.guessCorrect) {
+          // 見破り成功時
+          if (myId === ev.targetId) {
+            showPopup("見破り成功！ 🎉", `正解です！カード（${realCardInfo.name}）は ${ev.fromName} へ送られました。`, 'win');
+          } else if (myId === ev.fromId) {
+            showPopup("見破られた... 😭", `ブラフが見破られました！カード（${realCardInfo.name}）を自分の場に引き取ります。`, 'lose');
+          } else {
+            showPopup("見破り成功！", `${ev.targetName} が ${ev.fromName} のカードを正しく見破りました。`);
+          }
+        } else {
+          // 見破り失敗時（＝出し手のブラフ成功 または 嘘予想ハズレ）
+          if (myId === ev.fromId) {
+            showPopup("ブラフ成功！ 😈", `相手を騙すことに成功！カード（${realCardInfo.name}）は ${ev.targetName} が引き取りました！`, 'bluff');
+          } else if (myId === ev.targetId) {
+            showPopup("見破り失敗... 💦", `ハズレです... カード（${realCardInfo.name}）を自分の場に引き取ります。`, 'lose');
+          } else {
+            showPopup("ブラフ成功！", `${ev.fromName} が ${ev.targetName} を騙すことに成功しました！`, 'bluff');
+          }
+        }
+      } else if (ev.type === 'GAME_OVER') {
+        setTimeout(() => {
+          if (myId === gameState.loserId) {
+            showPopup("GAME OVER 😭", "あなたの敗北です...！", 'lose', 10000);
+          } else {
+            showPopup("VICTORY！ 🎉", `${ev.loserName} さんの敗北。あなたの勝ちです！`, 'win', 10000);
+          }
+        }, 1500);
+      }
     }
 
     function sendActionToHost(action) {
@@ -688,7 +735,6 @@
         const isTrue = active.card.id === active.claim;
         const targetPlayer = gameState.players.find(p => p.id === playerId);
         const fromPlayer = gameState.players.find(p => p.id === active.fromId);
-        const realCardObj = CARD_TYPES.find(c => c.id === active.card.id);
 
         let loserId = null;
         const guessCorrect = (action.guess === isTrue);
@@ -704,11 +750,24 @@
         const loser = gameState.players.find(p => p.id === loserId);
         loser.field[active.card.id]++;
 
+        // 判定演出イベントを記録
+        gameState.lastEvent = {
+          eventId: Date.now() + "_" + Math.random(),
+          type: 'JUDGE_RESULT',
+          guessCorrect: guessCorrect,
+          fromId: active.fromId,
+          fromName: fromPlayer.name,
+          targetId: playerId,
+          targetName: targetPlayer.name,
+          realCardId: active.card.id
+        };
+
         gameState.activeCard = null;
         gameState.phase = 'IDLE';
         gameState.turnPlayerId = loserId;
 
         checkDefeatCondition(loserId);
+
       } else if (action.type === 'PASS') {
         const active = gameState.activeCard;
         active.fromId = playerId;
@@ -722,7 +781,7 @@
         addLog(`${player.name} はカードを確認し、${targetName} へ「${claimObj.name}」と宣言してパスしました。`);
       }
 
-      if (gameState.phase === 'IDLE' && !gameState.gameOver) {
+      if (gameState.phase === 'IDLE' && gameState.phase !== 'GAME_OVER') {
         const turnP = gameState.players.find(p => p.id === gameState.turnPlayerId);
         if (turnP && turnP.hand.length === 0) {
           triggerGameOver(turnP.id, `${turnP.name} の手札がなくなりました！`);
@@ -758,7 +817,16 @@
     function triggerGameOver(loserId, reason) {
       const loser = gameState.players.find(p => p.id === loserId);
       gameState.phase = 'GAME_OVER';
+      gameState.loserId = loserId;
       addLog(`【ゲーム終了】 ${reason} ${loser.name} さんの負けです！`);
+
+      gameState.lastEvent = {
+        eventId: Date.now() + "_GAMEOVER",
+        type: 'GAME_OVER',
+        loserId: loserId,
+        loserName: loser.name,
+        reason: reason
+      };
     }
 
     function addLog(msg) {
@@ -781,7 +849,8 @@
 
       const statusEl = document.getElementById('statusMessage');
       if (gameState.phase === 'GAME_OVER') {
-        statusEl.innerText = "🎮 ゲーム終了！敗者が決定しました";
+        const loserName = gameState.players.find(p => p.id === gameState.loserId)?.name || '';
+        statusEl.innerText = `🎮 ゲーム終了！ 敗者: ${loserName} さん`;
         statusEl.style.borderColor = "var(--accent)";
       } else if (gameState.phase === 'IDLE') {
         const isMyTurn = gameState.turnPlayerId === myId;
@@ -851,7 +920,6 @@
       const handContainer = document.getElementById('myHandCards');
       handContainer.innerHTML = '';
 
-      // 手札を種類順（order順）に自動ソートして整理
       const sortedHand = [...me.hand].sort((a, b) => {
         const orderA = CARD_TYPES.find(c => c.id === a.id)?.order || 99;
         const orderB = CARD_TYPES.find(c => c.id === b.id)?.order || 99;
@@ -944,12 +1012,6 @@
         trueBtn.style.width = 'auto';
         trueBtn.innerText = '「本当」と見破る';
         trueBtn.onclick = () => {
-          const isTrue = gameState.activeCard.card.id === gameState.activeCard.claim;
-          if (isTrue) {
-            showPopup("見破り成功！ 🎉", "正解しました！カードは出し手へ返ります。");
-          } else {
-            showPopup("見破り失敗... 💦", "ハズレです... カードを自分の場に引き取ります。");
-          }
           sendActionToHost({ type: 'JUDGE', guess: true });
         };
 
@@ -958,12 +1020,6 @@
         falseBtn.style.width = 'auto';
         falseBtn.innerText = '「嘘」と見破る';
         falseBtn.onclick = () => {
-          const isTrue = gameState.activeCard.card.id === gameState.activeCard.claim;
-          if (!isTrue) {
-            showPopup("見破り成功！ 🎉", "相手の嘘を見破りました！カードは出し手へ返ります。");
-          } else {
-            showPopup("見破り失敗... 💦", "本当でした... カードを自分の場に引き取ります。");
-          }
           sendActionToHost({ type: 'JUDGE', guess: false });
         };
 
