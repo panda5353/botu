@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ごきぶりポーカー Online</title>
+  <title>ごきぶりポーカー Online v1.1</title>
   <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
   <style>
     :root {
@@ -169,11 +169,10 @@
       backdrop-filter: blur(4px);
     }
     
-    /* 他プレイヤーエリア (木枠アバター ＆ タップ選択可能に) */
     .other-players {
       display: flex;
       justify-content: center;
-      gap: 12px;
+      gap: 10px;
       flex-wrap: wrap;
       margin-top: 4px;
     }
@@ -183,7 +182,7 @@
       border: 3px solid #d7ccc8;
       border-radius: 12px;
       padding: 6px;
-      width: 110px;
+      width: 105px;
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -195,15 +194,12 @@
       border-color: #ffd700;
       box-shadow: 0 0 12px #ffd700;
     }
-    /* 相手選択可能時のスタイル */
     .player-frame.selectable {
       cursor: pointer;
       border-color: #2ecc71;
       animation: pulse-glow 1.5s infinite;
     }
-    .player-frame.selectable:hover {
-      transform: scale(1.05);
-    }
+    .player-frame.selectable:hover { transform: scale(1.05); }
     @keyframes pulse-glow {
       0% { box-shadow: 0 0 5px #2ecc71; }
       50% { box-shadow: 0 0 15px #2ecc71; }
@@ -225,13 +221,13 @@
       margin-bottom: 4px;
     }
     .avatar-icon-box {
-      width: 50px;
-      height: 50px;
+      width: 45px;
+      height: 45px;
       border-radius: 8px;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 1.8rem;
+      font-size: 1.6rem;
       border: 2px solid rgba(255,255,255,0.4);
       position: relative;
     }
@@ -272,21 +268,22 @@
     .table-center {
       background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, rgba(0,0,0,0.2) 100%);
       border: 2px dashed rgba(255,255,255,0.3);
-      padding: 14px;
+      padding: 12px;
       border-radius: 16px;
-      min-height: 120px;
+      min-height: 110px;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
       text-align: center;
-      gap: 8px;
-      margin: 6px 0;
+      gap: 6px;
+      margin: 4px 0;
     }
 
+    /* 虫ごとに並べる手札カードのスタイル */
     .game-card {
-      width: 75px;
-      height: 105px;
+      width: 65px;
+      height: 90px;
       border-radius: 8px;
       border: 2px solid #fff;
       background: #fff;
@@ -294,18 +291,23 @@
       flex-direction: column;
       align-items: center;
       justify-content: space-between;
-      padding: 6px;
+      padding: 4px;
       cursor: pointer;
       user-select: none;
-      box-shadow: -2px 3px 8px rgba(0,0,0,0.4);
-      transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+      box-shadow: 0 3px 6px rgba(0,0,0,0.3);
+      transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s;
       position: relative;
     }
-    .game-card .card-top-icon { font-size: 0.8rem; align-self: flex-start; }
-    .game-card .card-main-icon { font-size: 2rem; margin: 2px 0; }
-    .game-card .card-title { font-size: 0.7rem; font-weight: bold; }
+    .game-card:hover { transform: translateY(-6px); box-shadow: 0 6px 12px rgba(0,0,0,0.4); }
+    .game-card.selected {
+      transform: translateY(-10px) !important;
+      border-color: #ffd700 !important;
+      box-shadow: 0 0 12px #ffd700;
+    }
+    .game-card .card-top-icon { font-size: 0.75rem; align-self: flex-start; }
+    .game-card .card-main-icon { font-size: 1.8rem; margin: 2px 0; }
+    .game-card .card-title { font-size: 0.65rem; font-weight: bold; }
     
-    /* カード右上の保有枚数インジケーター */
     .card-count-badge {
       position: absolute;
       top: -6px;
@@ -314,8 +316,8 @@
       color: white;
       font-size: 0.65rem;
       font-weight: bold;
-      width: 20px;
-      height: 20px;
+      width: 18px;
+      height: 18px;
       border-radius: 50%;
       display: flex;
       align-items: center;
@@ -384,38 +386,23 @@
       flex-direction: column;
       align-items: center;
       position: relative;
-      padding-top: 6px;
+      padding-top: 4px;
     }
 
-    /* 扇形手札コンテナ（重なりを広く調整） */
-    .fan-hand-container {
+    /* 虫ごとに横に並べる新しい手札コンテナ */
+    .hand-grid-container {
       display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
       justify-content: center;
-      align-items: flex-end;
-      height: 140px;
+      align-items: center;
+      background: rgba(0, 0, 0, 0.4);
+      padding: 10px;
+      border-radius: 10px;
       width: 100%;
-      padding-bottom: 10px;
-      position: relative;
-    }
-
-    .fan-card-wrapper {
-      position: absolute;
-      bottom: 0;
-      transform-origin: bottom center;
-      transition: transform 0.2s ease, margin 0.2s ease;
-    }
-    
-    .fan-card-wrapper .game-card:hover {
-      transform: translateY(-20px) scale(1.06) !important;
-      z-index: 100 !important;
-      box-shadow: 0 10px 22px rgba(0,0,0,0.6);
-    }
-
-    .fan-card-wrapper.selected .game-card {
-      transform: translateY(-28px) scale(1.08) !important;
-      border-color: #ffd700 !important;
-      box-shadow: 0 0 16px #ffd700;
-      z-index: 101 !important;
+      min-height: 110px;
+      max-height: 140px;
+      overflow-y: auto;
     }
 
     .my-field-box {
@@ -445,7 +432,7 @@
       background: rgba(0,0,0,0.5);
       padding: 6px 10px;
       border-radius: 8px;
-      max-height: 80px;
+      max-height: 70px;
       overflow-y: auto;
       font-size: 0.8rem;
       color: #ddd;
@@ -459,7 +446,7 @@
 <body>
 
   <header>
-    <div class="logo">🪳 ごきぶりポーカー</div>
+    <div class="logo">🪳 ごきぶりポーカー Online <span style="font-size: 0.8rem; color: #ffd700; background: rgba(0,0,0,0.4); padding: 2px 6px; border-radius: 4px;">v1.1</span></div>
     <button class="rule-btn" onclick="toggleModal(true)">📖 ルール確認</button>
   </header>
 
@@ -472,7 +459,7 @@
 
   <div class="modal-overlay" id="ruleModal">
     <div class="modal">
-      <h2>ごきぶりポーカー ルール</h2>
+      <h2>ごきぶりポーカー ルール v1.1</h2>
       <h3>基本概要</h3>
       <p>嫌われ者カードを押し付け合い、敗者1人を決めるブラフゲームです。</p>
       
@@ -488,16 +475,16 @@
       </ul>
 
       <h3>手番でできること</h3>
-      <p>手札から1枚選び、裏向きで渡す相手を選択し、種類を宣言します（嘘でもOK）。</p>
+      <p>手札から1枚選び、相手の動物アイコンを直接タップし、種類を宣言します（嘘でもOK）。</p>
       <p>受け取った人の選択肢：</p>
       <ul>
         <li><b>見破る：</b>宣言が「本当」か「嘘」かを当てる。正解なら出し手、不正解なら自分が引き取る。</li>
-        <li><b>パス：</b>自分だけ確認し、まだ渡されていない別の人に裏向きで回す。</li>
+        <li><b>パス：</b>自分だけ確認し、別プレイヤーの動物アイコンをタップしてパスする。</li>
       </ul>
 
-      <h3>敗北条件（1人負けたらゲーム終了）</h3>
+      <h3>敗北条件</h3>
       <ul>
-        <li>自分の場に<b>同じ種類のカードが4枚</b>揃う（2人時5枚）。</li>
+        <li>自分の場に<b>同じ種類のカードが4枚</b>（2人時は5枚）揃う。</li>
         <li>自分の場に<b>8種類すべてのカード</b>が1枚以上揃う。</li>
         <li>自分の手番開始時に<b>手札が0枚</b>になっている。</li>
       </ul>
@@ -544,7 +531,7 @@
     <div id="gameScreen" class="game-layout hidden">
       <div class="status-bar" id="statusMessage">ゲーム初期化中...</div>
 
-      <!-- 他プレイヤーエリア（アバター・動物アイコン・タップ選択対応） -->
+      <!-- 他プレイヤーエリア（動物アバターアイコン＆タップ選択） -->
       <div class="other-players" id="otherPlayersArea"></div>
 
       <div class="table-center">
@@ -560,7 +547,8 @@
       </div>
 
       <div class="my-hand-section">
-        <div class="fan-hand-container" id="myHandCards"></div>
+        <!-- 虫ごとに横に並べて保有枚数を表示する手札エリア -->
+        <div class="hand-grid-container" id="myHandCards"></div>
 
         <div class="my-field-box">
           <div style="font-size:0.75rem; font-weight:bold; margin-bottom:4px; color:#aaa;">自分の引き取りカード (場札):</div>
@@ -586,17 +574,16 @@
       { id: 'stinkbug',  name: 'カメムシ', icon: '🪲', class: 'card-stinkbug',  order: 8 }
     ];
 
-    // プレイヤーごとのアバター動物＆カラーテーマ
     const PLAYER_THEMES = [
-      { avatar: '🐼', bg: '#1976d2', name: 'パンダ' }, // 1番目(ホスト): 青
-      { avatar: '🦊', bg: '#e74c3c', name: 'キツネ' }, // 2番目: 赤
-      { avatar: '🐰', bg: '#2ecc71', name: 'ウサギ' }, // 3番目: 緑
-      { avatar: '🐱', bg: '#f39c12', name: 'ネコ' },   // 4番目: 黄
-      { avatar: '🐨', bg: '#8e44ad', name: 'コアラ' }, // 5番目: 紫
-      { avatar: '🦁', bg: '#00bcd4', name: 'ライオン' } // 6番目: シアン
+      { avatar: '🐼', bg: '#1976d2', name: 'パンダ' },
+      { avatar: '🦊', bg: '#e74c3c', name: 'キツネ' },
+      { avatar: '🐰', bg: '#2ecc71', name: 'ウサギ' },
+      { avatar: '🐱', bg: '#f39c12', name: 'ネコ' },
+      { avatar: '🐨', bg: '#8e44ad', name: 'コアラ' },
+      { avatar: '🦁', bg: '#00bcd4', name: 'ライオン' }
     ];
 
-    const PEER_PREFIX = "goki-poker-room-3digit-v8-";
+    const PEER_PREFIX = "goki-poker-room-3digit-v11-";
 
     let peer = null;
     let connections = {};
@@ -618,7 +605,7 @@
     };
 
     let selectedUniqueId = null;
-    let targetPlayerIdForAction = null; // タップで選択された相手プレイヤーID
+    let targetPlayerIdForAction = null;
     let lastHandledEventId = null;
 
     function toggleModal(show) {
@@ -630,7 +617,7 @@
       popup.className = `popup-banner ${styleClass} show`;
       document.getElementById('popupTitle').innerText = title;
       document.getElementById('popupSub').innerText = sub;
-      setTimeout(() => {
+      setTimeout => {
         popup.classList.remove('show');
       }, duration);
     }
@@ -1014,7 +1001,7 @@
       othersArea.innerHTML = '';
       
       gameState.players.forEach((p, index) => {
-        if (p.id === myId) return; // 自分以外を表示
+        if (p.id === myId) return;
 
         const isTurn = (gameState.phase === 'IDLE' && gameState.turnPlayerId === p.id) || 
                        (gameState.phase === 'OFFERED' && gameState.activeCard.targetId === p.id);
@@ -1048,7 +1035,6 @@
           </div>
         `;
 
-        // タップで相手を選択する処理
         pCard.onclick = () => {
           if (isMyTurn || isPassTarget) {
             targetPlayerIdForAction = p.id;
@@ -1063,9 +1049,9 @@
       const centerClaim = document.getElementById('centerClaimText');
       if (gameState.activeCard) {
         centerBox.innerHTML = `
-          <div class="game-card card-back-style" style="width:75px; height:105px; margin: 0 auto;">
-            <span style="font-size:2rem;">❓</span>
-            <span style="font-size:0.7rem;">裏向き</span>
+          <div class="game-card card-back-style" style="width:65px; height:90px; margin: 0 auto;">
+            <span style="font-size:1.6rem;">❓</span>
+            <span style="font-size:0.6rem;">裏向き</span>
           </div>
         `;
         const claimObj = CARD_TYPES.find(c => c.id === gameState.activeCard.claim);
@@ -1075,7 +1061,7 @@
         centerClaim.innerText = '';
       }
 
-      renderMyHandFan(me);
+      renderMyHandGrid(me);
       renderActionPanel(me);
 
       const logEl = document.getElementById('logContainer');
@@ -1087,8 +1073,8 @@
       return p ? p.name : '';
     }
 
-    // 扇状手札（広めに調整＆右上に自分の手札にある同種カードの保有枚数を表示）
-    function renderMyHandFan(me) {
+    // 虫ごとに整理して横一列に並べ、保有枚数を表示する手札レンダリング
+    function renderMyHandGrid(me) {
       const handContainer = document.getElementById('myHandCards');
       handContainer.innerHTML = '';
 
@@ -1098,45 +1084,35 @@
         return orderA - orderB;
       });
 
-      const totalCards = sortedHand.length;
-      // 扇の広がりを拡大（カードが重なりすぎないよう角度と間隔を広く調整）
-      const angleStep = Math.min(8, 55 / Math.max(1, totalCards)); 
-      const startAngle = -((totalCards - 1) * angleStep) / 2;
+      if (sortedHand.length === 0) {
+        handContainer.innerHTML = `<p style="color: #aaa; font-size: 0.85rem;">手札はありません</p>`;
+        return;
+      }
 
-      sortedHand.forEach((card, idx) => {
-        const wrapper = document.createElement('div');
-        const angle = startAngle + idx * angleStep;
+      sortedHand.forEach((card) => {
+        const el = document.createElement('div');
+        const cardTypeInfo = CARD_TYPES.find(c => c.id === card.id) || { class: 'card-back-style', icon: '❓', name: '?' };
         const isSelected = (selectedUniqueId === card.uniqueId);
 
-        wrapper.className = `fan-card-wrapper ${isSelected ? 'selected' : ''}`;
-        
-        // 広めの重なりマージン
-        const overlapMargin = Math.min(-12, -35 + (totalCards * 1.5));
-        wrapper.style.margin = `0 ${overlapMargin}px`;
-        wrapper.style.transform = `rotate(${angle}deg)`;
-        wrapper.style.zIndex = idx + 1;
-
-        const cardTypeInfo = CARD_TYPES.find(c => c.id === card.id) || { class: 'card-back-style', icon: '❓', name: '?' };
-        
-        // 自分の手札の中にこの種類のカードが何枚あるかカウント
+        // 手札にある同種のカード枚数カウント
         const sameTypeCountInHand = me.hand.filter(c => c.id === card.id).length;
 
-        wrapper.innerHTML = `
-          <div class="game-card ${cardTypeInfo.class}">
-            <div class="card-count-badge">${sameTypeCountInHand}</div>
-            <div class="card-top-icon">${cardTypeInfo.icon}</div>
-            <div class="card-main-icon">${cardTypeInfo.icon}</div>
-            <div class="card-title">${cardTypeInfo.name}</div>
-          </div>
+        el.className = `game-card ${cardTypeInfo.class} ${isSelected ? 'selected' : ''}`;
+        el.innerHTML = `
+          <div class="card-count-badge">${sameTypeCountInHand}</div>
+          <div class="card-top-icon">${cardTypeInfo.icon}</div>
+          <div class="card-main-icon">${cardTypeInfo.icon}</div>
+          <div class="card-title">${cardTypeInfo.name}</div>
         `;
 
-        wrapper.onclick = () => {
+        el.onclick = () => {
           if (gameState.phase === 'IDLE' && gameState.turnPlayerId === myId) {
             selectedUniqueId = (selectedUniqueId === card.uniqueId) ? null : card.uniqueId;
             renderGame();
           }
         };
-        handContainer.appendChild(wrapper);
+
+        handContainer.appendChild(el);
       });
 
       const fieldContainer = document.getElementById('myFieldCards');
@@ -1177,7 +1153,6 @@
           return;
         }
 
-        // 宣言選択
         const claimSelect = document.createElement('select');
         claimSelect.className = 'select-box';
         CARD_TYPES.forEach(c => {
@@ -1232,15 +1207,13 @@
           passDiv.style.cssText = "width:100%; margin-top:6px; border-top:1px solid rgba(255,255,255,0.2); padding-top:6px; text-align:center;";
           passDiv.innerHTML = `<label style="display:block; margin-bottom:4px; font-size:0.8rem; color:#ccc;">または、上部の<strong>別プレイヤーの動物アイコン</strong>をタップしてパス宣言：</label>`;
 
-          const targetPlayerObj = gameState.players.find(p => p.id === targetPlayerIdForAction && unpassedPlayers.map(u=>u.id).includes(p.id));
-          const passTargetNameDisplay = targetPlayerObj ? `【${targetPlayerObj.name}】` : '未選択';
-
           const claimSelect = document.createElement('select');
           claimSelect.className = 'select-box';
           CARD_TYPES.forEach(c => {
             claimSelect.innerHTML += `<option value="${c.id}">${c.name} ${c.icon}</option>`;
           });
 
+          const targetPlayerObj = gameState.players.find(p => p.id === targetPlayerIdForAction);
           const passBtn = document.createElement('button');
           passBtn.className = 'btn';
           passBtn.style.cssText = "background:#8e44ad; color:white; width:auto;";
