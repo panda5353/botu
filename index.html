@@ -456,7 +456,7 @@
       { id: 'stinkbug',  name: 'カメムシ', icon: '🪲', class: 'card-stinkbug',  order: 8 }
     ];
 
-    const PEER_PREFIX = "goki-poker-room-3digit-v5-";
+    const PEER_PREFIX = "goki-poker-room-3digit-v6-";
 
     let peer = null;
     let connections = {};
@@ -477,14 +477,14 @@
       loserId: null
     };
 
-    let selectedUniqueId = null; // 選択されたカードの完全な固有ID
+    let selectedUniqueId = null;
     let lastHandledEventId = null;
 
     function toggleModal(show) {
       document.getElementById('ruleModal').classList.toggle('active', show);
     }
 
-    function showPopup(title, sub, styleClass = '', duration = 3000) {
+    function showPopup(title, sub, styleClass = '', duration = 3500) {
       const popup = document.getElementById('centerPopup');
       popup.className = `popup-banner ${styleClass} show`;
       document.getElementById('popupTitle').innerText = title;
@@ -630,6 +630,7 @@
       });
     }
 
+    // 全員の画面中央に分かりやすく判定結果を表示する処理
     function triggerEventPopups() {
       if (!gameState.lastEvent || gameState.lastEvent.eventId === lastHandledEventId) return;
       lastHandledEventId = gameState.lastEvent.eventId;
@@ -640,29 +641,28 @@
         const realCardInfo = CARD_TYPES.find(c => c.id === ev.realCardId);
 
         if (ev.guessCorrect) {
-          if (myId === ev.targetId) {
-            showPopup("見破り成功！ 🎉", `正解です！カード（${realCardInfo.name} ${realCardInfo.icon}）は ${ev.fromName} へ送られました。`, 'win');
-          } else if (myId === ev.fromId) {
-            showPopup("見破られた... 😭", `ブラフが見破られました！カード（${realCardInfo.name} ${realCardInfo.icon}）を自分の場に引き取ります。`, 'lose');
-          } else {
-            showPopup("見破り成功！", `${ev.targetName} が ${ev.fromName} のカードを正しく見破りました。`);
-          }
+          // 見破り成功（当てた側が正解）
+          showPopup(
+            `✨ ${ev.targetName} の見破り成功！`, 
+            `${ev.fromName} が出したカードの正体は「${realCardInfo.name} ${realCardInfo.icon}」でした！カードは ${ev.fromName} の場へ。`, 
+            'win'
+          );
         } else {
-          if (myId === ev.fromId) {
-            showPopup("ブラフ成功！ 😈", `相手を騙すことに成功！カード（${realCardInfo.name} ${realCardInfo.icon}）は ${ev.targetName} が引き取りました！`, 'bluff');
-          } else if (myId === ev.targetId) {
-            showPopup("見破り失敗... 💦", `ハズレです... カード（${realCardInfo.name} ${realCardInfo.icon}）を自分の場に引き取ります。`, 'lose');
-          } else {
-            showPopup("ブラフ成功！", `${ev.fromName} が ${ev.targetName} を騙すことに成功しました！`, 'bluff');
-          }
+          // 見破り失敗 ＝ 出し手（ブラフ側）の勝利
+          showPopup(
+            `😈 ${ev.fromName} のブラフ成功！`, 
+            `${ev.targetName} は見破りに失敗...！ 正体は「${realCardInfo.name} ${realCardInfo.icon}」でした。カードは ${ev.targetName} の場へ！`, 
+            'bluff'
+          );
         }
       } else if (ev.type === 'GAME_OVER') {
         setTimeout(() => {
-          if (myId === gameState.loserId) {
-            showPopup("GAME OVER 😭", "あなたの敗北です...！", 'lose', 10000);
-          } else {
-            showPopup("VICTORY！ 🎉", `${ev.loserName} さんの敗北。あなたの勝ちです！`, 'win', 10000);
-          }
+          showPopup(
+            `💀 GAME OVER (${ev.loserName} さんの敗北)`, 
+            ev.reason, 
+            'lose', 
+            12000
+          );
         }, 1500);
       }
     }
@@ -928,7 +928,6 @@
       const handContainer = document.getElementById('myHandCards');
       handContainer.innerHTML = '';
 
-      // 手札をCARD_TYPESの定義順に整列
       const sortedHand = [...me.hand].sort((a, b) => {
         const orderA = CARD_TYPES.find(c => c.id === a.id)?.order || 99;
         const orderB = CARD_TYPES.find(c => c.id === b.id)?.order || 99;
