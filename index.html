@@ -456,7 +456,7 @@
       { id: 'stinkbug',  name: 'カメムシ', icon: '🪲', class: 'card-stinkbug',  order: 8 }
     ];
 
-    const PEER_PREFIX = "goki-poker-room-3digit-v4-";
+    const PEER_PREFIX = "goki-poker-room-3digit-v5-";
 
     let peer = null;
     let connections = {};
@@ -477,7 +477,7 @@
       loserId: null
     };
 
-    let selectedCharAt = null; // 選択されたカードの固有ID（または一意の参照）
+    let selectedUniqueId = null; // 選択されたカードの完全な固有ID
     let lastHandledEventId = null;
 
     function toggleModal(show) {
@@ -623,7 +623,7 @@
         const maskedState = JSON.parse(JSON.stringify(gameState));
         maskedState.players.forEach(p => {
           if (p.id !== peerId) {
-            p.hand = p.hand.map(() => ({ id: 'unknown', name: '枚数のみ', icon: '❓', class: 'card-back-style' }));
+            p.hand = p.hand.map(c => ({ id: 'unknown', uniqueId: c.uniqueId, name: '枚数のみ', icon: '❓', class: 'card-back-style' }));
           }
         });
         connections[peerId].send({ type: 'SYNC', state: maskedState });
@@ -641,17 +641,17 @@
 
         if (ev.guessCorrect) {
           if (myId === ev.targetId) {
-            showPopup("見破り成功！ 🎉", `正解です！カード（${realCardInfo.name}）は ${ev.fromName} へ送られました。`, 'win');
+            showPopup("見破り成功！ 🎉", `正解です！カード（${realCardInfo.name} ${realCardInfo.icon}）は ${ev.fromName} へ送られました。`, 'win');
           } else if (myId === ev.fromId) {
-            showPopup("見破られた... 😭", `ブラフが見破られました！カード（${realCardInfo.name}）を自分の場に引き取ります。`, 'lose');
+            showPopup("見破られた... 😭", `ブラフが見破られました！カード（${realCardInfo.name} ${realCardInfo.icon}）を自分の場に引き取ります。`, 'lose');
           } else {
             showPopup("見破り成功！", `${ev.targetName} が ${ev.fromName} のカードを正しく見破りました。`);
           }
         } else {
           if (myId === ev.fromId) {
-            showPopup("ブラフ成功！ 😈", `相手を騙すことに成功！カード（${realCardInfo.name}）は ${ev.targetName} が引き取りました！`, 'bluff');
+            showPopup("ブラフ成功！ 😈", `相手を騙すことに成功！カード（${realCardInfo.name} ${realCardInfo.icon}）は ${ev.targetName} が引き取りました！`, 'bluff');
           } else if (myId === ev.targetId) {
-            showPopup("見破り失敗... 💦", `ハズレです... カード（${realCardInfo.name}）を自分の場に引き取ります。`, 'lose');
+            showPopup("見破り失敗... 💦", `ハズレです... カード（${realCardInfo.name} ${realCardInfo.icon}）を自分の場に引き取ります。`, 'lose');
           } else {
             showPopup("ブラフ成功！", `${ev.fromName} が ${ev.targetName} を騙すことに成功しました！`, 'bluff');
           }
@@ -686,8 +686,17 @@
       if (gameState.players.length < 2 || gameState.players.length > 6) return;
 
       let deck = [];
+      let uidCounter = 1;
       CARD_TYPES.forEach(type => {
-        for (let i = 0; i < 8; i++) deck.push({ ...type });
+        for (let i = 0; i < 8; i++) {
+          deck.push({ 
+            id: type.id, 
+            name: type.name, 
+            icon: type.icon, 
+            class: type.class,
+            uniqueId: `card_${type.id}_${uidCounter++}` 
+          });
+        }
       });
 
       deck.sort(() => Math.random() - 0.5);
@@ -699,9 +708,7 @@
 
       let pIdx = 0;
       while (deck.length > 0) {
-        // 各カードに一意の固有IDを付与して誤認を防ぐ
-        const cardObj = { ...deck.pop(), uniqueId: Math.random().toString(36.substr(2, 9)) };
-        gameState.players[pIdx].hand.push(cardObj);
+        gameState.players[pIdx].hand.push(deck.pop());
         pIdx = (pIdx + 1) % gameState.players.length;
       }
 
@@ -715,7 +722,6 @@
     function handlePlayerAction(playerId, action) {
       if (action.type === 'OFFER') {
         const player = gameState.players.find(p => p.id === playerId);
-        // 固有IDで正確なカードを特定して手札から削除・抽出
         const cardIdx = player.hand.findIndex(c => c.uniqueId === action.cardUniqueId);
         if (cardIdx === -1) return;
         const card = player.hand.splice(cardIdx, 1)[0];
@@ -922,6 +928,7 @@
       const handContainer = document.getElementById('myHandCards');
       handContainer.innerHTML = '';
 
+      // 手札をCARD_TYPESの定義順に整列
       const sortedHand = [...me.hand].sort((a, b) => {
         const orderA = CARD_TYPES.find(c => c.id === a.id)?.order || 99;
         const orderB = CARD_TYPES.find(c => c.id === b.id)?.order || 99;
@@ -931,15 +938,15 @@
       sortedHand.forEach((card) => {
         const el = document.createElement('div');
         const cardTypeInfo = CARD_TYPES.find(c => c.id === card.id) || { class: 'card-back-style', icon: '❓', name: '?' };
-        el.className = `game-card ${cardTypeInfo.class} ${selectedCharAt === card.uniqueId ? 'selected' : ''}`;
+        el.className = `game-card ${cardTypeInfo.class} ${selectedUniqueId === card.uniqueId ? 'selected' : ''}`;
         el.innerHTML = `
-          <div class="card-top-icon">${card.icon}</div>
-          <div class="card-main-icon">${card.icon}</div>
-          <div class="card-title">${card.name}</div>
+          <div class="card-top-icon">${cardTypeInfo.icon}</div>
+          <div class="card-main-icon">${cardTypeInfo.icon}</div>
+          <div class="card-title">${cardTypeInfo.name}</div>
         `;
         el.onclick = () => {
           if (gameState.phase === 'IDLE' && gameState.turnPlayerId === myId) {
-            selectedCharAt = (selectedCharAt === card.uniqueId) ? null : card.uniqueId;
+            selectedUniqueId = (selectedUniqueId === card.uniqueId) ? null : card.uniqueId;
             renderGame();
           }
         };
@@ -970,7 +977,7 @@
         panel.classList.remove('hidden');
         title.innerText = "出したいカードを選択し、相手と宣言を選んで渡してください";
 
-        if (!selectedCharAt) {
+        if (!selectedUniqueId) {
           group.innerHTML = `<p style="color:#666; font-size:0.9rem;">手札からカードを選択してください。</p>`;
           return;
         }
@@ -994,11 +1001,11 @@
         sendBtn.onclick = () => {
           sendActionToHost({
             type: 'OFFER',
-            cardUniqueId: selectedCharAt,
+            cardUniqueId: selectedUniqueId,
             targetId: targetSelect.value,
             claim: claimSelect.value
           });
-          selectedCharAt = null;
+          selectedUniqueId = null;
         };
 
         group.appendChild(targetSelect);
