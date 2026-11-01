@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ごきぶりポーカー Online v1.3</title>
+  <title>ごきぶりポーカー Online v1.4</title>
   <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
   <style>
     :root {
@@ -388,7 +388,6 @@
       padding-top: 4px;
     }
 
-    /* 重ねてすっきり見せる手札グループコンテナ */
     .hand-grid-container {
       display: flex;
       flex-wrap: wrap;
@@ -443,7 +442,7 @@
 <body>
 
   <header>
-    <div class="logo">🪳 ごきぶりポーカー Online <span style="font-size: 0.8rem; color: #ffd700; background: rgba(0,0,0,0.4); padding: 2px 6px; border-radius: 4px;">v1.3</span></div>
+    <div class="logo">🪳 ごきぶりポーカー Online <span style="font-size: 0.8rem; color: #ffd700; background: rgba(0,0,0,0.4); padding: 2px 6px; border-radius: 4px;">v1.4</span></div>
     <button class="rule-btn" onclick="toggleModal(true)">📖 ルール確認</button>
   </header>
 
@@ -456,7 +455,7 @@
 
   <div class="modal-overlay" id="ruleModal">
     <div class="modal">
-      <h2>ごきぶりポーカー ルール v1.3</h2>
+      <h2>ごきぶりポーカー ルール v1.4</h2>
       <h3>基本概要</h3>
       <p>嫌われ者カードを押し付け合い、敗者1人を決めるブラフゲームです。</p>
       
@@ -543,7 +542,6 @@
       </div>
 
       <div class="my-hand-section">
-        <!-- 8種類ごとに1枚ずつ重ねて表示する手札エリア -->
         <div class="hand-grid-container" id="myHandCards"></div>
 
         <div class="my-field-box">
@@ -579,7 +577,7 @@
       { avatar: '🦁', bg: '#00bcd4', name: 'ライオン' }
     ];
 
-    const PEER_PREFIX = "goki-poker-room-3digit-v13-";
+    const PEER_PREFIX = "goki-poker-room-3digit-v14-";
 
     let peer = null;
     let connections = {};
@@ -601,7 +599,7 @@
     };
 
     let selectedUniqueId = null;
-    let selectedTypeId = null; // 選択されたカードの種類ID
+    let selectedTypeId = null;
     let targetPlayerIdForAction = null;
     let lastHandledEventId = null;
 
@@ -755,6 +753,7 @@
       });
     }
 
+    // イベント通知ポップアップ（勝者には「勝利！」、敗者や見破られた側には「残念…！」をわかりやすく表示）
     function triggerEventPopups() {
       if (!gameState.lastEvent || gameState.lastEvent.eventId === lastHandledEventId) return;
       lastHandledEventId = gameState.lastEvent.eventId;
@@ -765,26 +764,31 @@
         const realCardInfo = CARD_TYPES.find(c => c.id === ev.realCardId);
 
         if (ev.guessCorrect) {
-          showPopup(
-            `✨ ${ev.targetName} の見破り成功！`, 
-            `${ev.fromName} が出したカードの正体は「${realCardInfo.name} ${realCardInfo.icon}」でした！カードは ${ev.fromName} の場へ。`, 
-            'win'
-          );
+          // 回答者(target)の見破り成功
+          if (myId === ev.targetId) {
+            showPopup("✨ 見破り成功！", `正解！カード（${realCardInfo.name} ${realCardInfo.icon}）は ${ev.fromName} が引き取りました。`, 'win');
+          } else if (myId === ev.fromId) {
+            showPopup("💦 残念...！見破られました", `ブラフが見破られました。カード（${realCardInfo.name} ${realCardInfo.icon}）を自分の場に引き取ります...`, 'lose');
+          } else {
+            showPopup("✨ 見破り成功！", `${ev.targetName} が ${ev.fromName} のカードを見破りました。`, 'win');
+          }
         } else {
-          showPopup(
-            `😈 ${ev.fromName} のブラフ成功！`, 
-            `${ev.targetName} は見破りに失敗...！ 正体は「${realCardInfo.name} ${realCardInfo.icon}」でした。カードは ${ev.targetName} の場へ！`, 
-            'bluff'
-          );
+          // 出し手(from)のブラフ成功（回答者は見破り失敗）
+          if (myId === ev.fromId) {
+            showPopup("😈 ブラフ成功！", `相手を騙すことに成功！カード（${realCardInfo.name} ${realCardInfo.icon}）は ${ev.targetName} が引き取りました！`, 'bluff');
+          } else if (myId === ev.targetId) {
+            showPopup("💦 残念...！見破り失敗", `ハズレです... カード（${realCardInfo.name} ${realCardInfo.icon}）を自分の場に引き取ります...`, 'lose');
+          } else {
+            showPopup("😈 ブラフ成功！", `${ev.fromName} が ${ev.targetName} を騙すことに成功しました！`, 'bluff');
+          }
         }
       } else if (ev.type === 'GAME_OVER') {
         setTimeout(() => {
-          showPopup(
-            `💀 GAME OVER (${ev.loserName} さんの敗北)`, 
-            ev.reason, 
-            'lose', 
-            12000
-          );
+          if (myId === gameState.loserId) {
+            showPopup("😭 残念...！あなたの敗北です", `敗北条件を満たしてしまいました... (${ev.reason})`, 'lose', 12000);
+          } else {
+            showPopup("🎉 勝利！", `おめでとうございます！ ${ev.loserName} さんの敗北により、あなたの勝利です！`, 'win', 12000);
+          }
         }, 1500);
       }
     }
@@ -979,9 +983,10 @@
 
       const statusEl = document.getElementById('statusMessage');
       if (gameState.phase === 'GAME_OVER') {
+        const isWinner = myId !== gameState.loserId;
         const loserName = gameState.players.find(p => p.id === gameState.loserId)?.name || '';
-        statusEl.innerText = `🎮 ゲーム終了！ 敗者: ${loserName} さん`;
-        statusEl.style.borderColor = "var(--accent)";
+        statusEl.innerText = isWinner ? `🎉 勝利！ (${loserName} さんの敗北)` : `😭 残念...！あなたの敗北です`;
+        statusEl.style.borderColor = isWinner ? "var(--success)" : "var(--accent)";
       } else if (gameState.phase === 'IDLE') {
         const isMyTurn = gameState.turnPlayerId === myId;
         statusEl.innerText = isMyTurn ? "👉 あなたの手番です。出したい虫と相手アイコンをタップしてください。" : `⏳ ${getTurnPlayerName()} の手番です...`;
@@ -1069,7 +1074,6 @@
       return p ? p.name : '';
     }
 
-    // 8種類の虫ごとにグループ分けし、所持枚数（バッジ）付きで重ねて表示
     function renderMyHandGrouped(me) {
       const handContainer = document.getElementById('myHandCards');
       handContainer.innerHTML = '';
@@ -1079,13 +1083,11 @@
         return;
       }
 
-      // CARD_TYPESの順番に従って所持している種類だけをまとめる
       CARD_TYPES.forEach((typeInfo) => {
         const cardsOfType = me.hand.filter(c => c.id === typeInfo.id);
         const count = cardsOfType.length;
 
         if (count > 0) {
-          // その虫の中から1枚代表IDを取得
           const firstCard = cardsOfType[0];
           const isSelected = (selectedTypeId === typeInfo.id);
 
