@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ごきぶりポーカー Online v1.1</title>
+  <title>ごきぶりポーカー Online v1.2</title>
   <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
   <style>
     :root {
@@ -280,7 +280,6 @@
       margin: 4px 0;
     }
 
-    /* 虫ごとに並べる手札カードのスタイル */
     .game-card {
       width: 65px;
       height: 90px;
@@ -389,7 +388,6 @@
       padding-top: 4px;
     }
 
-    /* 虫ごとに横に並べる新しい手札コンテナ */
     .hand-grid-container {
       display: flex;
       flex-wrap: wrap;
@@ -446,7 +444,7 @@
 <body>
 
   <header>
-    <div class="logo">🪳 ごきぶりポーカー Online <span style="font-size: 0.8rem; color: #ffd700; background: rgba(0,0,0,0.4); padding: 2px 6px; border-radius: 4px;">v1.1</span></div>
+    <div class="logo">🪳 ごきぶりポーカー Online <span style="font-size: 0.8rem; color: #ffd700; background: rgba(0,0,0,0.4); padding: 2px 6px; border-radius: 4px;">v1.2</span></div>
     <button class="rule-btn" onclick="toggleModal(true)">📖 ルール確認</button>
   </header>
 
@@ -459,7 +457,7 @@
 
   <div class="modal-overlay" id="ruleModal">
     <div class="modal">
-      <h2>ごきぶりポーカー ルール v1.1</h2>
+      <h2>ごきぶりポーカー ルール v1.2</h2>
       <h3>基本概要</h3>
       <p>嫌われ者カードを押し付け合い、敗者1人を決めるブラフゲームです。</p>
       
@@ -531,7 +529,6 @@
     <div id="gameScreen" class="game-layout hidden">
       <div class="status-bar" id="statusMessage">ゲーム初期化中...</div>
 
-      <!-- 他プレイヤーエリア（動物アバターアイコン＆タップ選択） -->
       <div class="other-players" id="otherPlayersArea"></div>
 
       <div class="table-center">
@@ -547,7 +544,6 @@
       </div>
 
       <div class="my-hand-section">
-        <!-- 虫ごとに横に並べて保有枚数を表示する手札エリア -->
         <div class="hand-grid-container" id="myHandCards"></div>
 
         <div class="my-field-box">
@@ -583,7 +579,7 @@
       { avatar: '🦁', bg: '#00bcd4', name: 'ライオン' }
     ];
 
-    const PEER_PREFIX = "goki-poker-room-3digit-v11-";
+    const PEER_PREFIX = "goki-poker-room-3digit-v12-";
 
     let peer = null;
     let connections = {};
@@ -617,7 +613,7 @@
       popup.className = `popup-banner ${styleClass} show`;
       document.getElementById('popupTitle').innerText = title;
       document.getElementById('popupSub').innerText = sub;
-      setTimeout => {
+      setTimeout(() => {
         popup.classList.remove('show');
       }, duration);
     }
@@ -996,7 +992,6 @@
         statusEl.style.borderColor = isTarget ? "var(--warning)" : "var(--primary)";
       }
 
-      // 他プレイヤーのアバター（動物＆カラー＆タップ選択）
       const othersArea = document.getElementById('otherPlayersArea');
       othersArea.innerHTML = '';
       
@@ -1073,7 +1068,6 @@
       return p ? p.name : '';
     }
 
-    // 虫ごとに整理して横一列に並べ、保有枚数を表示する手札レンダリング
     function renderMyHandGrid(me) {
       const handContainer = document.getElementById('myHandCards');
       handContainer.innerHTML = '';
@@ -1094,7 +1088,6 @@
         const cardTypeInfo = CARD_TYPES.find(c => c.id === card.id) || { class: 'card-back-style', icon: '❓', name: '?' };
         const isSelected = (selectedUniqueId === card.uniqueId);
 
-        // 手札にある同種のカード枚数カウント
         const sameTypeCountInHand = me.hand.filter(c => c.id === card.id).length;
 
         el.className = `game-card ${cardTypeInfo.class} ${isSelected ? 'selected' : ''}`;
