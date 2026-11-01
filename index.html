@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ごきぶりポーカー Online v1.7</title>
+  <title>ごきぶりポーカー Online v1.8</title>
   <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
   <style>
     :root {
@@ -455,8 +455,13 @@
 </head>
 <body>
 
+  <!-- YouTube BGMプレーヤー (非表示で自動ループ再生) -->
+  <div style="display:none;">
+    <iframe id="youtubeBgmPlayer" width="200" height="200" src="https://www.youtube.com/embed/TnaksMAARW8?enablejsapi=1&autoplay=1&loop=1&playlist=TnaksMAARW8" frameborder="0"></iframe>
+  </div>
+
   <header>
-    <div class="logo">🪳 ごきぶりポーカー Online <span style="font-size: 0.8rem; color: #ffd700; background: rgba(0,0,0,0.4); padding: 2px 6px; border-radius: 4px;">v1.7</span></div>
+    <div class="logo">🪳 ごきぶりポーカー Online <span style="font-size: 0.8rem; color: #ffd700; background: rgba(0,0,0,0.4); padding: 2px 6px; border-radius: 4px;">v1.8</span></div>
     <div class="header-btns">
       <button class="bgm-btn" id="bgmToggleBtn" onclick="toggleBGM()">🎵 BGM: ON</button>
       <button class="rule-btn" onclick="toggleModal(true)">📖 ルール確認</button>
@@ -472,7 +477,7 @@
 
   <div class="modal-overlay" id="ruleModal">
     <div class="modal">
-      <h2>ごきぶりポーカー ルール v1.7</h2>
+      <h2>ごきぶりポーカー ルール v1.8</h2>
       <h3>基本概要</h3>
       <p>嫌われ者カードを押し付け合い、敗者1人を決めるブラフゲームです。</p>
       
@@ -573,12 +578,53 @@
     </div>
   </main>
 
-  <script>
-    // --- 音声合成エンジン (正確な楽譜リズムのBGM ＆ 本格ファンファーレ＆どんまいぽわぽわ音) ---
-    let audioCtx = null;
-    let bgmInterval = null;
-    let isBgmPlaying = true; // 最初からON
+  <!-- YouTube IFrame API -->
+  <script src="https://www.youtube.com/iframe_api"></script>
 
+  <script>
+    // --- YouTube BGM ＆ 効果音エンジン ---
+    let ytPlayer = null;
+    let isBgmPlaying = true; // 最初からONで開始
+
+    function onYouTubeIframeAPIReady() {
+      ytPlayer = new YT.Player('youtubeBgmPlayer', {
+        events: {
+          'onReady': (event) => {
+            event.target.setVolume(40); // 音量40%
+            if (isBgmPlaying) {
+              event.target.playVideo();
+            }
+          }
+        }
+      });
+    }
+
+    // ブラウザの自動再生ポリシー対策：画面内の最初のクリックで音楽を確実に再生開始
+    window.addEventListener('click', () => {
+      if (ytPlayer && typeof ytPlayer.playVideo === 'function' && isBgmPlaying) {
+        ytPlayer.playVideo();
+      }
+    }, { once: true });
+
+    function toggleBGM() {
+      const btn = document.getElementById('bgmToggleBtn');
+      isBgmPlaying = !isBgmPlaying;
+
+      if (ytPlayer && typeof ytPlayer.playVideo === 'function') {
+        if (isBgmPlaying) {
+          ytPlayer.playVideo();
+          btn.innerText = "🎵 BGM: ON";
+          btn.classList.remove('off');
+        } else {
+          ytPlayer.pauseVideo();
+          btn.innerText = "🎵 BGM: OFF";
+          btn.classList.add('off');
+        }
+      }
+    }
+
+    // 効果音用 Web Audio API
+    let audioCtx = null;
     function initAudio() {
       if (!audioCtx) {
         audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -587,13 +633,6 @@
         audioCtx.resume();
       }
     }
-
-    window.addEventListener('click', () => {
-      initAudio();
-      if (isBgmPlaying && !bgmInterval) {
-        startBGM();
-      }
-    }, { once: true });
 
     function playSound(type) {
       try {
@@ -634,12 +673,11 @@
             o.stop(now + i * 0.08 + 0.15);
           });
         } else if (type === 'win') {
-          // 華やかなファンファーレ（トランペット風和音コード）
           const chordNotes = [
-            [523.25, 659.25, 783.99], // C Major
-            [587.33, 698.46, 880.00], // Dm
-            [659.25, 830.61, 987.77], // Em
-            [523.25, 659.25, 783.99, 1046.50] // C Final High
+            [523.25, 659.25, 783.99],
+            [587.33, 698.46, 880.00],
+            [659.25, 830.61, 987.77],
+            [523.25, 659.25, 783.99, 1046.50]
           ];
           const times = [0, 0.2, 0.4, 0.65];
           const durations = [0.18, 0.18, 0.22, 0.6];
@@ -659,14 +697,13 @@
             });
           });
         } else if (type === 'lose') {
-          // どんまい…なぽわぽわした柔らかい下降サウンド
           const notes = [440, 392, 349.23, 329.63, 261.63];
           notes.forEach((freq, i) => {
             const o = audioCtx.createOscillator();
             const g = audioCtx.createGain();
             o.connect(g);
             g.connect(audioCtx.destination);
-            o.type = 'sine'; // ぽわぽわした優しいサイン波
+            o.type = 'sine';
             o.frequency.setValueAtTime(freq, now + i * 0.18);
             g.gain.setValueAtTime(0.2, now + i * 0.18);
             g.gain.linearRampToValueAtTime(0.001, now + i * 0.18 + 0.25);
@@ -678,86 +715,6 @@
         console.log("Audio play error:", e);
       }
     }
-
-    // ご提示いただいた楽譜の正確なフレーズ・リズムに合わせたBGM
-    function toggleBGM() {
-      initAudio();
-      const btn = document.getElementById('bgmToggleBtn');
-      isBgmPlaying = !isBgmPlaying;
-
-      if (isBgmPlaying) {
-        btn.innerText = "🎵 BGM: ON";
-        btn.classList.remove('off');
-        startBGM();
-      } else {
-        btn.innerText = "🎵 BGM: OFF";
-        btn.classList.add('off');
-        stopBGM();
-      }
-    }
-
-    function startBGM() {
-      if (bgmInterval) clearInterval(bgmInterval);
-      
-      // 楽譜の冒頭〜「らららコッペパン」の正確な音階シーケンス (周波数Hz)
-      // ド=261.63, レ=293.66, ミ=329.63, ファ=349.23, ソ=392.00, ラ=440.00, シ=493.88, 高いド=523.25
-      const scoreNotes = [
-        { f: 392.00, d: 0.2 }, // ソ
-        { f: 523.25, d: 0.4 }, // 高いド
-        { f: 0,      d: 0.2 }, // 休符
-        { f: 440.00, d: 0.2 }, // ラ
-        { f: 392.00, d: 0.2 }, // ソ
-        { f: 329.63, d: 0.4 }, // ミ
-        { f: 349.23, d: 0.2 }, // ファ
-        { f: 392.00, d: 0.4 }, // ソ
-        { f: 0,      d: 0.2 }, // 休符
-        { f: 329.63, d: 0.2 }, // ミ
-        { f: 293.66, d: 0.2 }, // レ
-        { f: 261.63, d: 0.6 }  // ド
-      ];
-
-      let noteIdx = 0;
-
-      function playNextNote() {
-        if (!isBgmPlaying || !audioCtx) return;
-        const note = scoreNotes[noteIdx];
-        
-        if (note.f > 0) {
-          try {
-            const now = audioCtx.currentTime;
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-            osc.connect(gain);
-            gain.connect(audioCtx.destination);
-            osc.type = 'triangle';
-            osc.frequency.setValueAtTime(note.f, now);
-            gain.gain.setValueAtTime(0.06, now);
-            gain.gain.linearRampToValueAtTime(0.001, now + note.d);
-            osc.start(now);
-            osc.stop(now + note.d);
-          } catch(e) {}
-        }
-
-        noteIdx = (noteIdx + 1) % scoreNotes.length;
-        const nextTime = note.d * 1000;
-        bgmInterval = setTimeout(playNextNote, nextTime);
-      }
-
-      playNextNote();
-    }
-
-    function stopBGM() {
-      if (bgmInterval) {
-        clearTimeout(bgmInterval);
-        bgmInterval = null;
-      }
-    }
-
-    window.addEventListener('load', () => {
-      setTimeout(() => {
-        if (isBgmPlaying) startBGM();
-      }, 1000);
-    });
 
     // --- ゲーム本体のロジック ---
     const CARD_TYPES = [
@@ -780,7 +737,7 @@
       { avatar: '🦁', bg: '#00bcd4', name: 'ライオン' }
     ];
 
-    const PEER_PREFIX = "goki-poker-room-3digit-v17-";
+    const PEER_PREFIX = "goki-poker-room-3digit-v18-";
 
     let peer = null;
     let connections = {};
