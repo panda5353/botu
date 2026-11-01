@@ -30,7 +30,6 @@
       overflow-x: hidden;
     }
 
-    /* ヘッダー */
     header {
       background: rgba(15, 23, 42, 0.9);
       color: white;
@@ -59,7 +58,6 @@
     }
     .rule-btn:hover { opacity: 0.9; transform: translateY(-1px); }
 
-    /* モーダル */
     .modal-overlay {
       position: fixed;
       top: 0; left: 0; right: 0; bottom: 0;
@@ -99,10 +97,8 @@
       cursor: pointer;
     }
 
-    /* メインコンテナ */
     main { flex: 1; padding: 12px; max-width: 1000px; margin: 0 auto; width: 100%; position: relative; display: flex; flex-direction: column; }
 
-    /* ロビー画面 */
     .lobby-container {
       display: flex;
       flex-direction: column;
@@ -141,7 +137,6 @@
     .btn-primary { background: var(--primary); color: white; }
     .btn-success { background: var(--success); color: white; }
 
-    /* 待機室 */
     .room-info {
       text-align: center;
       background: #eef4fb;
@@ -161,10 +156,8 @@
       align-items: center;
     }
 
-    /* ゲームレイアウト */
-    .game-layout { display: flex; flex-direction: column; gap: 12px; flex: 1; }
+    .game-layout { display: flex; flex-direction: column; gap: 10px; flex: 1; }
     
-    /* ステータスバー */
     .status-bar {
       background: rgba(0, 0, 0, 0.6);
       padding: 10px 16px;
@@ -176,13 +169,13 @@
       backdrop-filter: blur(4px);
     }
     
-    /* 他プレイヤーエリア (木枠風アバター表示) */
+    /* 他プレイヤーエリア (木枠アバター ＆ タップ選択可能に) */
     .other-players {
       display: flex;
       justify-content: center;
       gap: 12px;
       flex-wrap: wrap;
-      margin-top: 6px;
+      margin-top: 4px;
     }
 
     .player-frame {
@@ -196,11 +189,27 @@
       align-items: center;
       box-shadow: 0 4px 10px rgba(0,0,0,0.5);
       position: relative;
+      transition: all 0.2s;
     }
     .player-frame.active {
       border-color: #ffd700;
       box-shadow: 0 0 12px #ffd700;
     }
+    /* 相手選択可能時のスタイル */
+    .player-frame.selectable {
+      cursor: pointer;
+      border-color: #2ecc71;
+      animation: pulse-glow 1.5s infinite;
+    }
+    .player-frame.selectable:hover {
+      transform: scale(1.05);
+    }
+    @keyframes pulse-glow {
+      0% { box-shadow: 0 0 5px #2ecc71; }
+      50% { box-shadow: 0 0 15px #2ecc71; }
+      100% { box-shadow: 0 0 5px #2ecc71; }
+    }
+
     .player-name-tag {
       background: rgba(0, 0, 0, 0.7);
       color: #fff;
@@ -218,20 +227,18 @@
     .avatar-icon-box {
       width: 50px;
       height: 50px;
-      background: #cfd8dc;
       border-radius: 8px;
       display: flex;
       align-items: center;
       justify-content: center;
       font-size: 1.8rem;
-      border: 2px solid #b0bec5;
+      border: 2px solid rgba(255,255,255,0.4);
       position: relative;
     }
 
-    /* 手札のファン（扇形）バッジ */
     .hand-fan-badge {
       position: absolute;
-      bottom: -10px;
+      bottom: -8px;
       background: #1976d2;
       color: white;
       font-size: 0.65rem;
@@ -242,7 +249,6 @@
       box-shadow: 0 2px 4px rgba(0,0,0,0.3);
     }
 
-    /* フィールド場札のミニ一覧 */
     .mini-field-list {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
@@ -263,23 +269,21 @@
       border-radius: 2px;
     }
 
-    /* 中央アクションテーブル */
     .table-center {
       background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, rgba(0,0,0,0.2) 100%);
       border: 2px dashed rgba(255,255,255,0.3);
-      padding: 16px;
+      padding: 14px;
       border-radius: 16px;
-      min-height: 140px;
+      min-height: 120px;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
       text-align: center;
-      gap: 10px;
-      margin: 10px 0;
+      gap: 8px;
+      margin: 6px 0;
     }
 
-    /* リアルなカードスタイリング */
     .game-card {
       width: 75px;
       height: 105px;
@@ -298,9 +302,29 @@
       position: relative;
     }
     .game-card .card-top-icon { font-size: 0.8rem; align-self: flex-start; }
-    .game-card .card-main-icon { font-size: 2.2rem; margin: 2px 0; }
-    .game-card .card-title { font-size: 0.75rem; font-weight: bold; }
+    .game-card .card-main-icon { font-size: 2rem; margin: 2px 0; }
+    .game-card .card-title { font-size: 0.7rem; font-weight: bold; }
     
+    /* カード右上の保有枚数インジケーター */
+    .card-count-badge {
+      position: absolute;
+      top: -6px;
+      right: -6px;
+      background: #e74c3c;
+      color: white;
+      font-size: 0.65rem;
+      font-weight: bold;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid white;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+      z-index: 10;
+    }
+
     .card-back-style {
       background: linear-gradient(135deg, #1565c0, #0d47a1);
       border-color: #ffffff;
@@ -308,7 +332,6 @@
       justify-content: center;
     }
 
-    /* カード種類別カラー */
     .card-cockroach { border-color: #a0522d; background: #fff9f5; color: #6b3410; }
     .card-spider    { border-color: #4a4a4a; background: #f7f7f7; color: #222222; }
     .card-fly       { border-color: #5c6bc0; background: #f0f2fe; color: #283593; }
@@ -318,7 +341,6 @@
     .card-scorpion  { border-color: #ef5350; background: #ffebee; color: #b71c1c; }
     .card-stinkbug  { border-color: #827717; background: #f9fbe7; color: #827717; }
 
-    /* 中央ポップアップ */
     .popup-overlay {
       position: fixed;
       top: 0; left: 0; right: 0; bottom: 0;
@@ -347,37 +369,35 @@
     .popup-title { font-size: 2rem; font-weight: bold; margin-bottom: 8px; }
     .popup-sub { font-size: 1.15rem; color: #eee; }
 
-    /* 操作コントロール */
     .control-panel {
       background: rgba(0, 0, 0, 0.65);
-      padding: 12px 16px;
+      padding: 10px 14px;
       border-radius: 12px;
       border: 1px solid rgba(255,255,255,0.2);
     }
-    .action-group { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; justify-content: center; }
+    .action-group { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; justify-content: center; align-items: center; }
     .select-box { padding: 8px 12px; border-radius: 6px; border: 1px solid #ccc; font-size: 0.95rem; background: white; color: #333; }
 
-    /* 自分のエリア ＆ 手札の扇形（ファン）コンテナ */
     .my-hand-section {
       margin-top: auto;
       display: flex;
       flex-direction: column;
       align-items: center;
       position: relative;
-      padding-top: 10px;
+      padding-top: 6px;
     }
 
+    /* 扇形手札コンテナ（重なりを広く調整） */
     .fan-hand-container {
       display: flex;
       justify-content: center;
       align-items: flex-end;
-      height: 130px;
+      height: 140px;
       width: 100%;
       padding-bottom: 10px;
       position: relative;
     }
 
-    /* 扇型に広がる手札 */
     .fan-card-wrapper {
       position: absolute;
       bottom: 0;
@@ -386,25 +406,24 @@
     }
     
     .fan-card-wrapper .game-card:hover {
-      transform: translateY(-16px) scale(1.05) !important;
+      transform: translateY(-20px) scale(1.06) !important;
       z-index: 100 !important;
-      box-shadow: 0 8px 20px rgba(0,0,0,0.6);
+      box-shadow: 0 10px 22px rgba(0,0,0,0.6);
     }
 
     .fan-card-wrapper.selected .game-card {
-      transform: translateY(-24px) scale(1.08) !important;
+      transform: translateY(-28px) scale(1.08) !important;
       border-color: #ffd700 !important;
-      box-shadow: 0 0 15px #ffd700;
+      box-shadow: 0 0 16px #ffd700;
       z-index: 101 !important;
     }
 
-    /* 自分の場札表示 */
     .my-field-box {
       width: 100%;
       background: rgba(0, 0, 0, 0.5);
-      padding: 8px;
+      padding: 6px 10px;
       border-radius: 8px;
-      margin-top: 6px;
+      margin-top: 4px;
     }
 
     .field-cards {
@@ -424,13 +443,13 @@
 
     .logs-panel {
       background: rgba(0,0,0,0.5);
-      padding: 8px 12px;
+      padding: 6px 10px;
       border-radius: 8px;
-      max-height: 90px;
+      max-height: 80px;
       overflow-y: auto;
       font-size: 0.8rem;
       color: #ddd;
-      margin-top: 6px;
+      margin-top: 4px;
     }
     .log-entry { margin-bottom: 2px; border-bottom: 1px solid rgba(255,255,255,0.1); }
 
@@ -444,7 +463,6 @@
     <button class="rule-btn" onclick="toggleModal(true)">📖 ルール確認</button>
   </header>
 
-  <!-- 中央ポップアップ -->
   <div class="popup-overlay">
     <div class="popup-banner" id="centerPopup">
       <div class="popup-title" id="popupTitle">メッセージ</div>
@@ -452,7 +470,6 @@
     </div>
   </div>
 
-  <!-- ルール確認モーダル -->
   <div class="modal-overlay" id="ruleModal">
     <div class="modal">
       <h2>ごきぶりポーカー ルール</h2>
@@ -489,7 +506,6 @@
   </div>
 
   <main>
-    <!-- ロビー画面 -->
     <div id="lobbyScreen" class="lobby-container">
       <div class="card-panel">
         <h2>部屋を作成する</h2>
@@ -514,7 +530,6 @@
       </div>
     </div>
 
-    <!-- 待機室画面 -->
     <div id="waitingScreen" class="card-panel hidden" style="max-width: 450px; margin: 40px auto 0; color:#333;">
       <div class="room-info">
         <div>部屋番号</div>
@@ -526,16 +541,12 @@
       <p id="waitingNotice" style="text-align: center; color: #666; font-size: 0.9rem;" class="hidden">ホストがゲームを開始するのを待っています...</p>
     </div>
 
-    <!-- ゲームプレイ画面 -->
     <div id="gameScreen" class="game-layout hidden">
-      
-      <!-- ステータスバー -->
       <div class="status-bar" id="statusMessage">ゲーム初期化中...</div>
 
-      <!-- 他のプレイヤーエリア (対戦相手の木枠アバター) -->
+      <!-- 他プレイヤーエリア（アバター・動物アイコン・タップ選択対応） -->
       <div class="other-players" id="otherPlayersArea"></div>
 
-      <!-- テーブル中央（渡されているカード） -->
       <div class="table-center">
         <div id="centerCardContainer">
           <p style="color: rgba(255,255,255,0.7);">カードはありません</p>
@@ -543,15 +554,12 @@
         <div id="centerClaimText" style="font-weight: bold; font-size: 1.1rem; color: #ffd700;"></div>
       </div>
 
-      <!-- アクションコントロール -->
       <div class="control-panel hidden" id="actionPanel">
         <h3 id="actionTitle" style="font-size: 0.95rem; text-align:center;">あなたのアクション</h3>
         <div class="action-group" id="actionButtons"></div>
       </div>
 
-      <!-- 自分の手札＆自分の場 -->
       <div class="my-hand-section">
-        <!-- 扇状に配置される手札 -->
         <div class="fan-hand-container" id="myHandCards"></div>
 
         <div class="my-field-box">
@@ -560,11 +568,9 @@
         </div>
       </div>
 
-      <!-- 行動ログ -->
       <div class="logs-panel" id="logContainer">
         <div class="log-entry">ゲームが開始されました。</div>
       </div>
-
     </div>
   </main>
 
@@ -580,9 +586,17 @@
       { id: 'stinkbug',  name: 'カメムシ', icon: '🪲', class: 'card-stinkbug',  order: 8 }
     ];
 
-    const AVATARS = ['👤', '👤', '👤', '👤', '👤', '👤'];
+    // プレイヤーごとのアバター動物＆カラーテーマ
+    const PLAYER_THEMES = [
+      { avatar: '🐼', bg: '#1976d2', name: 'パンダ' }, // 1番目(ホスト): 青
+      { avatar: '🦊', bg: '#e74c3c', name: 'キツネ' }, // 2番目: 赤
+      { avatar: '🐰', bg: '#2ecc71', name: 'ウサギ' }, // 3番目: 緑
+      { avatar: '🐱', bg: '#f39c12', name: 'ネコ' },   // 4番目: 黄
+      { avatar: '🐨', bg: '#8e44ad', name: 'コアラ' }, // 5番目: 紫
+      { avatar: '🦁', bg: '#00bcd4', name: 'ライオン' } // 6番目: シアン
+    ];
 
-    const PEER_PREFIX = "goki-poker-room-3digit-v7-";
+    const PEER_PREFIX = "goki-poker-room-3digit-v8-";
 
     let peer = null;
     let connections = {};
@@ -604,6 +618,7 @@
     };
 
     let selectedUniqueId = null;
+    let targetPlayerIdForAction = null; // タップで選択された相手プレイヤーID
     let lastHandledEventId = null;
 
     function toggleModal(show) {
@@ -985,7 +1000,7 @@
         statusEl.style.borderColor = "var(--accent)";
       } else if (gameState.phase === 'IDLE') {
         const isMyTurn = gameState.turnPlayerId === myId;
-        statusEl.innerText = isMyTurn ? "👉 あなたの手番です。カードを選んで誰かに渡してください。" : `⏳ ${getTurnPlayerName()} の手番です...`;
+        statusEl.innerText = isMyTurn ? "👉 あなたの手番です。手札と渡す相手アイコンをタップしてください。" : `⏳ ${getTurnPlayerName()} の手番です...`;
         statusEl.style.borderColor = isMyTurn ? "var(--success)" : "var(--primary)";
       } else if (gameState.phase === 'OFFERED') {
         const isTarget = gameState.activeCard.targetId === myId;
@@ -994,19 +1009,33 @@
         statusEl.style.borderColor = isTarget ? "var(--warning)" : "var(--primary)";
       }
 
-      // 他プレイヤーのアバター木枠レンダリング
+      // 他プレイヤーのアバター（動物＆カラー＆タップ選択）
       const othersArea = document.getElementById('otherPlayersArea');
       othersArea.innerHTML = '';
-      gameState.players.filter(p => p.id !== myId).forEach((p, index) => {
+      
+      gameState.players.forEach((p, index) => {
+        if (p.id === myId) return; // 自分以外を表示
+
         const isTurn = (gameState.phase === 'IDLE' && gameState.turnPlayerId === p.id) || 
                        (gameState.phase === 'OFFERED' && gameState.activeCard.targetId === p.id);
         
+        const theme = PLAYER_THEMES[index % PLAYER_THEMES.length];
+        const isMyTurn = (gameState.phase === 'IDLE' && gameState.turnPlayerId === myId);
+        const isPassTarget = (gameState.phase === 'OFFERED' && gameState.activeCard.targetId === myId && !gameState.activeCard.passedPlayerIds.includes(p.id));
+        const canSelect = isMyTurn || isPassTarget;
+        const isSelectedTarget = (targetPlayerIdForAction === p.id);
+
         const pCard = document.createElement('div');
-        pCard.className = `player-frame ${isTurn ? 'active' : ''}`;
+        pCard.className = `player-frame ${isTurn ? 'active' : ''} ${canSelect ? 'selectable' : ''}`;
+        if (isSelectedTarget) {
+          pCard.style.borderColor = "#ffd700";
+          pCard.style.boxShadow = "0 0 15px #ffd700";
+        }
+
         pCard.innerHTML = `
           <div class="player-name-tag">${p.name}</div>
-          <div class="avatar-icon-box">
-            ${AVATARS[index % AVATARS.length]}
+          <div class="avatar-icon-box" style="background: ${theme.bg};">
+            ${theme.avatar}
             <div class="hand-fan-badge">${p.hand.length}枚</div>
           </div>
           <div class="mini-field-list">
@@ -1018,6 +1047,15 @@
             `).join('')}
           </div>
         `;
+
+        // タップで相手を選択する処理
+        pCard.onclick = () => {
+          if (isMyTurn || isPassTarget) {
+            targetPlayerIdForAction = p.id;
+            renderGame();
+          }
+        };
+
         othersArea.appendChild(pCard);
       });
 
@@ -1049,7 +1087,7 @@
       return p ? p.name : '';
     }
 
-    // 手札を扇形（ファン状）に描画
+    // 扇状手札（広めに調整＆右上に自分の手札にある同種カードの保有枚数を表示）
     function renderMyHandFan(me) {
       const handContainer = document.getElementById('myHandCards');
       handContainer.innerHTML = '';
@@ -1061,7 +1099,8 @@
       });
 
       const totalCards = sortedHand.length;
-      const angleStep = Math.min(6, 40 / Math.max(1, totalCards)); // 角度
+      // 扇の広がりを拡大（カードが重なりすぎないよう角度と間隔を広く調整）
+      const angleStep = Math.min(8, 55 / Math.max(1, totalCards)); 
       const startAngle = -((totalCards - 1) * angleStep) / 2;
 
       sortedHand.forEach((card, idx) => {
@@ -1071,16 +1110,20 @@
 
         wrapper.className = `fan-card-wrapper ${isSelected ? 'selected' : ''}`;
         
-        // カードの重なり間隔と扇形の角度計算
-        const overlapMargin = Math.min(-20, -50 + (totalCards * 2));
+        // 広めの重なりマージン
+        const overlapMargin = Math.min(-12, -35 + (totalCards * 1.5));
         wrapper.style.margin = `0 ${overlapMargin}px`;
         wrapper.style.transform = `rotate(${angle}deg)`;
         wrapper.style.zIndex = idx + 1;
 
         const cardTypeInfo = CARD_TYPES.find(c => c.id === card.id) || { class: 'card-back-style', icon: '❓', name: '?' };
         
+        // 自分の手札の中にこの種類のカードが何枚あるかカウント
+        const sameTypeCountInHand = me.hand.filter(c => c.id === card.id).length;
+
         wrapper.innerHTML = `
           <div class="game-card ${cardTypeInfo.class}">
+            <div class="card-count-badge">${sameTypeCountInHand}</div>
             <div class="card-top-icon">${cardTypeInfo.icon}</div>
             <div class="card-main-icon">${cardTypeInfo.icon}</div>
             <div class="card-title">${cardTypeInfo.name}</div>
@@ -1118,19 +1161,23 @@
 
       if (gameState.phase === 'IDLE' && gameState.turnPlayerId === myId) {
         panel.classList.remove('hidden');
-        title.innerText = "出したいカードを選択し、相手と宣言を選んで渡してください";
+        
+        const targetPlayerObj = gameState.players.find(p => p.id === targetPlayerIdForAction);
+        const targetNameDisplay = targetPlayerObj ? `【${targetPlayerObj.name}】` : '未選択';
+
+        title.innerHTML = `手札を選択し、相手アイコンをタップ (${targetNameTag(targetNameDisplay)})`;
 
         if (!selectedUniqueId) {
-          group.innerHTML = `<p style="color:#aaa; font-size:0.85rem;">手札からカードを選択してください。</p>`;
+          group.innerHTML = `<p style="color:#aaa; font-size:0.85rem;">👆 まず手札のカードをタップして選択してください。</p>`;
           return;
         }
 
-        const targetSelect = document.createElement('select');
-        targetSelect.className = 'select-box';
-        gameState.players.filter(p => p.id !== myId).forEach(p => {
-          targetSelect.innerHTML += `<option value="${p.id}">${p.name}</option>`;
-        });
+        if (!targetPlayerIdForAction) {
+          group.innerHTML = `<p style="color:#f39c12; font-size:0.85rem;">👆 次に、上部の<strong>渡したい相手の動物アイコン</strong>をタップしてください。</p>`;
+          return;
+        }
 
+        // 宣言選択
         const claimSelect = document.createElement('select');
         claimSelect.className = 'select-box';
         CARD_TYPES.forEach(c => {
@@ -1140,18 +1187,18 @@
         const sendBtn = document.createElement('button');
         sendBtn.className = 'btn btn-primary';
         sendBtn.style.width = 'auto';
-        sendBtn.innerText = 'カードを渡す';
+        sendBtn.innerText = `${targetPlayerObj.name} さんへカードを渡す`;
         sendBtn.onclick = () => {
           sendActionToHost({
             type: 'OFFER',
             cardUniqueId: selectedUniqueId,
-            targetId: targetSelect.value,
+            targetId: targetPlayerIdForAction,
             claim: claimSelect.value
           });
           selectedUniqueId = null;
+          targetPlayerIdForAction = null;
         };
 
-        group.appendChild(targetSelect);
         group.appendChild(claimSelect);
         group.appendChild(sendBtn);
 
@@ -1183,38 +1230,37 @@
         if (unpassedPlayers.length > 0) {
           const passDiv = document.createElement('div');
           passDiv.style.cssText = "width:100%; margin-top:6px; border-top:1px solid rgba(255,255,255,0.2); padding-top:6px; text-align:center;";
-          passDiv.innerHTML = `<label style="display:block; margin-bottom:4px; font-size:0.8rem; color:#ccc;">または、カードをこっそり確認してパス：</label>`;
+          passDiv.innerHTML = `<label style="display:block; margin-bottom:4px; font-size:0.8rem; color:#ccc;">または、上部の<strong>別プレイヤーの動物アイコン</strong>をタップしてパス宣言：</label>`;
 
-          const passTargetSelect = document.createElement('select');
-          passTargetSelect.className = 'select-box';
-          unpassedPlayers.forEach(p => {
-            passTargetSelect.innerHTML += `<option value="${p.id}">${p.name}</option>`;
-          });
+          const targetPlayerObj = gameState.players.find(p => p.id === targetPlayerIdForAction && unpassedPlayers.map(u=>u.id).includes(p.id));
+          const passTargetNameDisplay = targetPlayerObj ? `【${targetPlayerObj.name}】` : '未選択';
 
-          const passClaimSelect = document.createElement('select');
-          passClaimSelect.className = 'select-box';
+          const claimSelect = document.createElement('select');
+          claimSelect.className = 'select-box';
           CARD_TYPES.forEach(c => {
-            passClaimSelect.innerHTML += `<option value="${c.id}">${c.name} ${c.icon}</option>`;
+            claimSelect.innerHTML += `<option value="${c.id}">${c.name} ${c.icon}</option>`;
           });
 
           const passBtn = document.createElement('button');
           passBtn.className = 'btn';
           passBtn.style.cssText = "background:#8e44ad; color:white; width:auto;";
-          passBtn.innerText = 'カードを見てパスする';
+          passBtn.innerText = `${targetPlayerObj ? targetPlayerObj.name : '相手'}へカードを見てパスする`;
+          passBtn.disabled = !targetPlayerIdForAction;
           passBtn.onclick = () => {
+            if (!targetPlayerIdForAction) return;
             const realCard = gameState.activeCard.card;
             const realCardInfo = CARD_TYPES.find(c => c.id === realCard.id);
             alert(`【カード確認】\n正体は 「${realCardInfo.name} ${realCardInfo.icon}」 でした。`);
 
             sendActionToHost({
               type: 'PASS',
-              targetId: passTargetSelect.value,
-              claim: passClaimSelect.value
+              targetId: targetPlayerIdForAction,
+              claim: claimSelect.value
             });
+            targetPlayerIdForAction = null;
           };
 
-          passDiv.appendChild(passTargetSelect);
-          passDiv.appendChild(passClaimSelect);
+          passDiv.appendChild(claimSelect);
           passDiv.appendChild(passBtn);
           group.appendChild(passDiv);
         }
@@ -1222,6 +1268,10 @@
       } else {
         panel.classList.add('hidden');
       }
+    }
+
+    function targetNameTag(name) {
+      return `<span style="color:#ffd700;">選択先: ${name}</span>`;
     }
   </script>
 </body>
