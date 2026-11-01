@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ごきぶりポーカー Online v1.8</title>
+  <title>ごきぶりポーカー Online v1.9</title>
   <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
   <style>
     :root {
@@ -455,13 +455,13 @@
 </head>
 <body>
 
-  <!-- YouTube BGMプレーヤー (非表示で自動ループ再生) -->
-  <div style="display:none;">
-    <iframe id="youtubeBgmPlayer" width="200" height="200" src="https://www.youtube.com/embed/TnaksMAARW8?enablejsapi=1&autoplay=1&loop=1&playlist=TnaksMAARW8" frameborder="0"></iframe>
+  <!-- YouTube BGM プレーヤー (PC/スマホ対応・非表示) -->
+  <div style="position: absolute; left: -9999px; top: -9999px;">
+    <div id="youtubeBgmPlayer"></div>
   </div>
 
   <header>
-    <div class="logo">🪳 ごきぶりポーカー Online <span style="font-size: 0.8rem; color: #ffd700; background: rgba(0,0,0,0.4); padding: 2px 6px; border-radius: 4px;">v1.8</span></div>
+    <div class="logo">🪳 ごきぶりポーカー Online <span style="font-size: 0.8rem; color: #ffd700; background: rgba(0,0,0,0.4); padding: 2px 6px; border-radius: 4px;">v1.9</span></div>
     <div class="header-btns">
       <button class="bgm-btn" id="bgmToggleBtn" onclick="toggleBGM()">🎵 BGM: ON</button>
       <button class="rule-btn" onclick="toggleModal(true)">📖 ルール確認</button>
@@ -477,7 +477,7 @@
 
   <div class="modal-overlay" id="ruleModal">
     <div class="modal">
-      <h2>ごきぶりポーカー ルール v1.8</h2>
+      <h2>ごきぶりポーカー ルール v1.9</h2>
       <h3>基本概要</h3>
       <p>嫌われ者カードを押し付け合い、敗者1人を決めるブラフゲームです。</p>
       
@@ -582,35 +582,62 @@
   <script src="https://www.youtube.com/iframe_api"></script>
 
   <script>
-    // --- YouTube BGM ＆ 効果音エンジン ---
+    // --- YouTube BGM ＆ 効果音エンジン (v1.9 修正版) ---
     let ytPlayer = null;
-    let isBgmPlaying = true; // 最初からONで開始
+    let isBgmPlaying = true; // 最初からON
+    let ytReady = false;
 
     function onYouTubeIframeAPIReady() {
       ytPlayer = new YT.Player('youtubeBgmPlayer', {
+        height: '0',
+        width: '0',
+        videoId: 'TnaksMAARW8',
+        playerVars: {
+          'autoplay': 1,
+          'loop': 1,
+          'playlist': 'TnaksMAARW8',
+          'controls': 0,
+          'disablekb': 1,
+          'fs': 0,
+          'modestbranding': 1
+        },
         events: {
           'onReady': (event) => {
-            event.target.setVolume(40); // 音量40%
+            ytReady = true;
+            event.target.setVolume(20); // 音量を20%に下げて効果音がつぶれないように調整
             if (isBgmPlaying) {
               event.target.playVideo();
+            }
+          },
+          'onStateChange': (event) => {
+            // ループ設定（念のため終了時に頭出し）
+            if (event.data === YT.PlayerState.ENDED) {
+              ytPlayer.playVideo();
             }
           }
         }
       });
     }
 
-    // ブラウザの自動再生ポリシー対策：画面内の最初のクリックで音楽を確実に再生開始
-    window.addEventListener('click', () => {
-      if (ytPlayer && typeof ytPlayer.playVideo === 'function' && isBgmPlaying) {
-        ytPlayer.playVideo();
+    // パソコン・スマホ共通の最初のアクション（クリック/タップ）で確実に音声再生をアンロック
+    function unlockAudioAndBgm() {
+      initAudio();
+      if (ytReady && ytPlayer && typeof ytPlayer.playVideo === 'function') {
+        if (isBgmPlaying) {
+          ytPlayer.playVideo();
+        }
       }
-    }, { once: true });
+    }
+
+    window.addEventListener('click', unlockAudioAndBgm, { once: true });
+    window.addEventListener('keydown', unlockAudioAndBgm, { once: true });
+    window.addEventListener('touchstart', unlockAudioAndBgm, { once: true });
 
     function toggleBGM() {
       const btn = document.getElementById('bgmToggleBtn');
       isBgmPlaying = !isBgmPlaying;
 
-      if (ytPlayer && typeof ytPlayer.playVideo === 'function') {
+      if (ytReady && ytPlayer && typeof ytPlayer.playVideo === 'function') {
         if (isBgmPlaying) {
           ytPlayer.playVideo();
           btn.innerText = "🎵 BGM: ON";
@@ -620,10 +647,19 @@
           btn.innerText = "🎵 BGM: OFF";
           btn.classList.add('off');
         }
+      } else {
+        // まだプレーヤー準備中の場合の表示切替
+        if (isBgmPlaying) {
+          btn.innerText = "🎵 BGM: ON";
+          btn.classList.remove('off');
+        } else {
+          btn.innerText = "🎵 BGM: OFF";
+          btn.classList.add('off');
+        }
       }
     }
 
-    // 効果音用 Web Audio API
+    // 効果音用 Web Audio API (バランス調整済み)
     let audioCtx = null;
     function initAudio() {
       if (!audioCtx) {
@@ -647,7 +683,7 @@
           osc.type = 'sine';
           osc.frequency.setValueAtTime(500, now);
           osc.frequency.exponentialRampToValueAtTime(200, now + 0.08);
-          gain.gain.setValueAtTime(0.15, now);
+          gain.gain.setValueAtTime(0.12, now);
           gain.gain.linearRampToValueAtTime(0.01, now + 0.08);
           osc.start(now);
           osc.stop(now + 0.08);
@@ -655,7 +691,7 @@
           osc.type = 'triangle';
           osc.frequency.setValueAtTime(300, now);
           osc.frequency.exponentialRampToValueAtTime(120, now + 0.1);
-          gain.gain.setValueAtTime(0.2, now);
+          gain.gain.setValueAtTime(0.15, now);
           gain.gain.linearRampToValueAtTime(0.01, now + 0.1);
           osc.start(now);
           osc.stop(now + 0.1);
@@ -667,7 +703,7 @@
             g.connect(audioCtx.destination);
             o.type = 'triangle';
             o.frequency.setValueAtTime(f, now + i * 0.08);
-            g.gain.setValueAtTime(0.18, now + i * 0.08);
+            g.gain.setValueAtTime(0.15, now + i * 0.08);
             g.gain.linearRampToValueAtTime(0.01, now + i * 0.08 + 0.15);
             o.start(now + i * 0.08);
             o.stop(now + i * 0.08 + 0.15);
@@ -690,7 +726,7 @@
               g.connect(audioCtx.destination);
               o.type = 'triangle';
               o.frequency.setValueAtTime(freq, now + times[idx]);
-              g.gain.setValueAtTime(0.18, now + times[idx]);
+              g.gain.setValueAtTime(0.15, now + times[idx]);
               g.gain.linearRampToValueAtTime(0.01, now + times[idx] + durations[idx]);
               o.start(now + times[idx]);
               o.stop(now + times[idx] + durations[idx]);
@@ -705,7 +741,7 @@
             g.connect(audioCtx.destination);
             o.type = 'sine';
             o.frequency.setValueAtTime(freq, now + i * 0.18);
-            g.gain.setValueAtTime(0.2, now + i * 0.18);
+            g.gain.setValueAtTime(0.15, now + i * 0.18);
             g.gain.linearRampToValueAtTime(0.001, now + i * 0.18 + 0.25);
             o.start(now + i * 0.18);
             o.stop(now + i * 0.18 + 0.25);
@@ -737,7 +773,7 @@
       { avatar: '🦁', bg: '#00bcd4', name: 'ライオン' }
     ];
 
-    const PEER_PREFIX = "goki-poker-room-3digit-v18-";
+    const PEER_PREFIX = "goki-poker-room-3digit-v19-";
 
     let peer = null;
     let connections = {};
